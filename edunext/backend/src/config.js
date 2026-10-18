@@ -38,13 +38,10 @@ const schema = z
           message: 'In production JWT_SECRET must be set to a strong value (>= 32 chars, not a known default).',
         });
       }
-      if (!env.CORS_ORIGINS || !env.CORS_ORIGINS.trim()) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['CORS_ORIGINS'],
-          message: 'In production CORS_ORIGINS must list the allowed frontend origin(s).',
-        });
-      }
+      // NOTE: CORS_ORIGINS is intentionally NOT required to boot. On the first
+      // deploy you don't yet know the frontend URL (it needs the backend URL
+      // first), so the server must start with an empty allow-list and be wired up
+      // afterwards. We warn (below) instead of refusing to start.
     }
   });
 
@@ -70,6 +67,10 @@ export function loadConfig(env = process.env) {
   }
   const e = parsed.data;
   const corsOrigins = parseList(e.CORS_ORIGINS || (e.NODE_ENV !== 'production' ? 'http://localhost:5173,http://localhost:4173' : ''));
+  if (e.NODE_ENV === 'production' && corsOrigins.length === 0) {
+    // eslint-disable-next-line no-console
+    console.warn('[warn] CORS_ORIGINS is empty — no cross-origin browser requests will be allowed yet. Set it to your frontend URL and redeploy.');
+  }
   const corsPatterns = parseList(e.CORS_ORIGIN_PATTERNS).map((p) => {
     try {
       return new RegExp(p);
