@@ -1,0 +1,25 @@
+node_modules/
+dist/
+coverage/
+*.log
+
+# SQLite databases (runtime data)
+*.db
+*.db-shm
+*.db-wal
+backend/data/
+
+# Secrets
+.env
+.env.local
+backend/.env
+
+# Model weights + MediaPipe/WASM assets are committed so the deployed build always
+# has them (Vercel copies public/ to dist regardless of whether postinstall ran).
+# They are also regenerated locally by `npm install` (copy-face-models.mjs).
+frontend/public/vendor/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

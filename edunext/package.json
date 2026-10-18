@@ -1,0 +1,30 @@
+{
+  "name": "edunext",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "EduNext — self-hosted course site that personalizes learning with on-device attention + emotion sensing.",
+  "workspaces": [
+    "shared",
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "concurrently -n backend,frontend -c blue,green \"npm run dev -w @edunext/backend\" \"npm run dev -w @edunext/frontend\"",
+    "build": "npm run build -w @edunext/frontend",
+    "preview": "npm run preview -w @edunext/frontend",
+    "test": "npm run test -w @edunext/shared && npm run test -w @edunext/backend && npm run test -w @edunext/frontend",
+    "migrate": "npm run migrate -w @edunext/backend",
+    "seed": "npm run seed -w @edunext/backend",
+    "e2e": "npm run e2e -w @edunext/backend",
+    "perf:check": "node scripts/perf/check.mjs",
+    "predeploy": "node scripts/predeploy-check.mjs",
+    "test:deploy": "node e2e/deploy-smoke.spec.js"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

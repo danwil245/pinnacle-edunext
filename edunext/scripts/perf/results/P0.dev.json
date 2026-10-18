@@ -1,0 +1,204 @@
+{
+  "label": "dev-server",
+  "base": "http://localhost:5174",
+  "headful": false,
+  "note": "Headless WebGL is software-rendered; treat Vanta/WebGL frame times as relative, not absolute.",
+  "timestamp": "2026-10-18T13:31:56.096Z",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+  "hardwareConcurrency": 16,
+  "routes": [
+    {
+      "path": "/",
+      "scroll": {
+        "avg": 16.95,
+        "p95": 17.1,
+        "dropped": 2,
+        "n": 166
+      },
+      "longTasks50": 0,
+      "longTasks100": 0,
+      "heapMB": 8.69,
+      "liveWebgl": 1,
+      "scrollTriggers": 5,
+      "webglCreates": 3
+    },
+    {
+      "path": "/login",
+      "scroll": {
+        "avg": 16.65,
+        "p95": 17.1,
+        "dropped": 0,
+        "n": 169
+      },
+      "longTasks50": 0,
+      "longTasks100": 0,
+      "heapMB": 8.54,
+      "liveWebgl": 1,
+      "scrollTriggers": 1,
+      "webglCreates": 3
+    },
+    {
+      "path": "/register",
+      "scroll": {
+        "avg": 16.65,
+        "p95": 17.1,
+        "dropped": 0,
+        "n": 167
+      },
+      "longTasks50": 0,
+      "longTasks100": 0,
+      "heapMB": 8.52,
+      "liveWebgl": 1,
+      "scrollTriggers": 1,
+      "webglCreates": 3
+    },
+    {
+      "path": "/onboarding",
+      "scroll": {
+        "avg": 16.65,
+        "p95": 17,
+        "dropped": 0,
+        "n": 170
+      },
+      "longTasks50": 0,
+      "longTasks100": 0,
+      "heapMB": 8.95,
+      "liveWebgl": 1,
+      "scrollTriggers": 0,
+      "webglCreates": 3
+    },
+    {
+      "path": "/home",
+      "scroll": {
+        "avg": 16.65,
+        "p95": 16.9,
+        "dropped": 0,
+        "n": 155
+      },
+      "longTasks50": 0,
+      "longTasks100": 0,
+      "heapMB": 6.79,
+      "liveWebgl": 0,
+      "scrollTriggers": 3,
+      "webglCreates": 0
+    },
+    {
+      "path": "/courses/web-foundations",
+      "scroll": {
+        "avg": 16.65,
+        "p95": 16.8,
+        "dropped": 0,
+        "n": 155
+      },
+      "longTasks50": 0,
+      "longTasks100": 0,
+      "heapMB": 6.7,
+      "liveWebgl": 0,
+      "scrollTriggers": 2,
+      "webglCreates": 0
+    },
+    {
+      "path": "/learn/1",
+      "scroll": {
+        "avg": 16.65,
+        "p95": 16.8,
+        "dropped": 0,
+        "n": 156
+      },
+      "longTasks50": 0,
+      "longTasks100": 0,
+      "heapMB": 6.5,
+      "liveWebgl": 0,
+      "scrollTriggers": 0,
+      "webglCreates": 0
+    },
+    {
+      "path": "/summary/2",
+      "scroll": {
+        "avg": 16.65,
+        "p95": 16.9,
+        "dropped": 0,
+        "n": 157
+      },
+      "longTasks50": 0,
+      "longTasks100": 0,
+      "heapMB": 7.72,
+      "liveWebgl": 0,
+      "scrollTriggers": 2,
+      "webglCreates": 0
+    },
+    {
+      "path": "/insights",
+      "scroll": {
+        "avg": 16.65,
+        "p95": 16.9,
+        "dropped": 0,
+        "n": 157
+      },
+      "longTasks50": 0,
+      "longTasks100": 0,
+      "heapMB": 7.75,
+      "liveWebgl": 0,
+      "scrollTriggers": 2,
+      "webglCreates": 0
+    },
+    {
+      "path": "/profile",
+      "scroll": {
+        "avg": 16.65,
+        "p95": 16.9,
+        "dropped": 0,
+        "n": 157
+      },
+      "longTasks50": 0,
+      "longTasks100": 0,
+      "heapMB": 6.9,
+      "liveWebgl": 0,
+      "scrollTriggers": 4,
+      "webglCreates": 0
+    }
+  ],
+  "transitions": [
+    {
+      "from": "/home",
+      "to": "/insights",
+      "avg": 16.65,
+      "p95": 16.9,
+      "dropped": 0,
+      "n": 66
+    },
+    {
+      "from": "/home",
+      "to": "/courses/web-foundations",
+      "avg": 16.65,
+      "p95": 17,
+      "dropped": 0,
+      "n": 66
+    },
+    {
+      "from": "/insights",
+      "to": "/profile",
+      "avg": 16.66,
+      "p95": 17,
+      "dropped": 0,
+      "n": 67
+    }
+  ],
+  "leak": {
+    "a": "/home",
+    "b": "/insights",
+    "roundTrips": 20,
+    "before": {
+      "heapMB": 7.44,
+      "liveWebgl": 0,
+      "scrollTriggers": 3,
+      "webglCreates": 0
+    },
+    "after": {
+      "heapMB": 7.37,
+      "liveWebgl": 0,
+      "scrollTriggers": 3,
+      "webglCreates": 0
+    }
+  }
+}

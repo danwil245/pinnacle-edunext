@@ -1,0 +1,33 @@
+# Render Blueprint for the EduNext backend (Express + better-sqlite3).
+# This repo (pinnacle-edunext) holds the EduNext app in the `edunext/` subfolder,
+# so the build context is set with `rootDir: edunext`.
+#
+# Validate at https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: edunext-api
+    runtime: node
+    plan: free
+    region: singapore # closest offered to India
+    rootDir: edunext
+    buildCommand: npm install
+    startCommand: npm run start -w @edunext/backend
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true # Render generates a strong secret
+      - key: CORS_ORIGINS
+        sync: false # YOU fill this in with the Vercel URL (no trailing slash)
+      - key: DATABASE_PATH
+        value: ./data/edunext.db # ephemeral on free tier (resets on restart)
+      - key: LOG_LEVEL
+        value: info
+    # --- Optional: persistent disk (paid instances) so accounts survive restarts.
+    # disk:
+    #   name: edunext-data
+    #   mountPath: /var/data
+    #   sizeGB: 1
+    # Then change DATABASE_PATH above to: /var/data/edunext.db

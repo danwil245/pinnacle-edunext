@@ -1,0 +1,46 @@
+{
+  "label": "after",
+  "base": "http://localhost:5191",
+  "ts": "2026-10-18T15:09:34.625Z",
+  "measurements": [
+    {
+      "label": "/login (control)",
+      "scroll": {
+        "avg": 16.65,
+        "p95": 17.1,
+        "dropped": 0
+      },
+      "rafPerSec": 248,
+      "liveTracks": 0,
+      "liveWebgl": 1,
+      "longTasks100": 1
+    },
+    {
+      "label": "/home (fresh)",
+      "scroll": {
+        "avg": 16.65,
+        "p95": 17,
+        "dropped": 0
+      },
+      "rafPerSec": 187,
+      "liveTracks": 0,
+      "liveWebgl": 0,
+      "longTasks100": 0
+    },
+    {
+      "label": "after camera->client-nav (/)",
+      "scroll": {
+        "avg": 16.65,
+        "p95": 17.1,
+        "dropped": 0
+      },
+      "rafPerSec": 248,
+      "liveTracks": 0,
+      "liveWebgl": 1,
+      "longTasks100": 2
+    }
+  ],
+  "cameraStartedOnDev": {
+    "liveTracks": 1
+  }
+}

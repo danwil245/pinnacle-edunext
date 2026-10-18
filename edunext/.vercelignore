@@ -1,0 +1,9 @@
+# Backend + server-only code (Vercel only builds the frontend static site).
+backend
+# Tests, docs, perf tooling, e2e — not needed in the frontend build.
+**/test
+e2e
+docs
+scripts
+*.md
+# NOTE: do NOT ignore shared/ — the frontend imports from it.
