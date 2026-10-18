@@ -1,5 +1,10 @@
 # Deploying EduNext
 
+> **LIVE** (deployed):
+> - Frontend (Vercel): https://pinnacle-edunext-edunext.vercel.app
+> - Backend (Render): https://edunext-api-jsg9.onrender.com (`/health` → ok)
+> - Auto-deploy on push to `main` is ON for both. `CORS_ORIGINS` on Render = the Vercel URL.
+
 Two free services: **frontend on Vercel** (static Vite build) and **backend on
 Render** (Express + better-sqlite3). The frontend talks to the backend over HTTPS
 using the `VITE_API_URL` you set on Vercel; the backend only allows the exact
