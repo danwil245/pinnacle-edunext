@@ -10,7 +10,6 @@ import Layout from './components/Layout.jsx';
 import RouteFallback from './components/RouteFallback.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 import ConfigError from './components/ConfigError.jsx';
-import ServerWaking from './components/ServerWaking.jsx';
 import { API_MISCONFIGURED } from './api/client.js';
 import Intro from './motion/Intro.jsx';
 import CursorFollower from './motion/CursorFollower.jsx';
@@ -48,7 +47,6 @@ export default function App() {
         <BrowserRouter>
           <SmoothScrollProvider>
             <AuthProvider>
-              <ServerWaking />
               <TrackerRouteGate />
               <Intro />
               <CursorFollower />
