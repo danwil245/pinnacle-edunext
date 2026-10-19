@@ -1,7 +1,7 @@
 # Deploying EduNext
 
 > **LIVE** (deployed):
-> - Frontend (Vercel): https://pinnacle-edunext-edunext.vercel.app
+> - Frontend (Vercel): https://edunext-learn.vercel.app
 > - Backend (Render): https://edunext-api-jsg9.onrender.com (`/health` → ok)
 > - Auto-deploy on push to `main` is ON for both. `CORS_ORIGINS` on Render = the Vercel URL.
 
