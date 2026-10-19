@@ -4,7 +4,7 @@
 
 EduNext watches how a learner is doing *while* they learn (blink rate, facial expression, and short in-lesson feedback), builds a **personal baseline** for each learner, and uses it to adapt pace, breaks, replays and lesson format. Everything is sensed in the browser: **video never leaves your device.**
 
-**Live demo:** https://edunext.vercel.app
+**Live demo:** https://edunext-learn.vercel.app
 
 > University project, SSN College of Engineering. Guide: Dr. S. Mohanavalli. Team: Midhush Kanna and [danwil245](https://github.com/danwil245).
 
