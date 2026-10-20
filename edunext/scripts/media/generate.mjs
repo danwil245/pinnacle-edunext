@@ -75,8 +75,11 @@ async function main() {
   rmSync(tmpDir, { recursive: true, force: true });
   mkdirSync(tmpDir, { recursive: true });
   console.log('[media] generating 6 calibration clips →', outDir);
+  // Optional: pass one or more filenames to re-render only those clips.
+  const only = process.argv.slice(2).filter((a) => a.endsWith('.mp4'));
   const browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--hide-scrollbars'] });
   for (const clip of CLIPS) {
+    if (only.length && !only.includes(clip.file)) continue;
     const durationS = CONFIG[clip.durationKey];
     process.stdout.write(`  ${clip.file} (${durationS}s, ${Math.round(durationS * FPS)} frames) … `);
     // Fresh page per clip so each animation gets a clean window (a prior clip's
