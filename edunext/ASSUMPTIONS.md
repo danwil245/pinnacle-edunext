@@ -243,3 +243,35 @@ shrinking ambition, or stripping animation.
   are not actually on GitHub. It must become a normal subfolder of the connected
   repo (or be its own repo) before Vercel/Render can build it. See DEPLOY.md →
   "Repository layout". This is the one manual step that blocks automated deploy.
+
+---
+
+## Calibration clips
+
+- **No API keys were set** (PEXELS/PIXABAY "not set") and `ffmpeg` was not on PATH,
+  so all six clips were **generated locally** (Method B, license-free) via
+  `ffmpeg-static` + a headless-Chrome canvas renderer. Tooling lives in
+  `scripts/media/` as **devDependencies** only (not shipped in the app).
+- **Probe length follows CONFIG = 20 s** (`STYLE_PROBE_CLIP_S`), not the 30 s in the
+  prompt's table (the prompt says follow CONFIG). Interest/neutral = 45 s
+  (`CALIBRATION_CLIP_S`).
+- Generation uses **deterministic frame rendering** (frame N drawn at t = N/30, read
+  via `canvas.toDataURL`, encoded by ffmpeg) rather than Playwright video capture —
+  Playwright's recorder needs its own ffmpeg binary (absent) and gives imprecise
+  fps/length. Frames → exact duration/fps, no extra dependency.
+- **Schema:** added one optional, additive field `usedFallbackClip` to
+  `shared/src/schemas.js` calibration object so a degraded read (a clip failed to load
+  and an in-browser placeholder was used) is recorded in the stored calibration. No
+  calibration **math** changed; the field is optional and defaults absent.
+- **Measurement logic unchanged:** MeasureClip still measures over the tracker's
+  observed-face-time (presence), exactly as before. Only the clip *presentation* gained
+  a poster, a "preparing" state, retry-once-then-fallback, and a tap-to-start for the
+  rare blocked-autoplay case. The "gate measurement strictly on video playback" refinement
+  was intentionally **not** applied, to honour "keep the existing valid-face-time logic
+  unchanged".
+- **No Vanta/WebGL** renders during onboarding now (plain dark background) so the clip +
+  tracker aren't competing with a WebGL loop.
+- Manifest = `frontend/src/content/calibrationClips.js` (the old `content/clips.js` was
+  deleted; only onboarding imported it). The backend's own
+  `backend/src/content/calibrationClips.js` is a separate, untouched placeholder set
+  (lesson content, out of scope for this task).

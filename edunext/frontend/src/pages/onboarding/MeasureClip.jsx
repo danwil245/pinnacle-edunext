@@ -12,9 +12,12 @@ import ClipPlaceholder, { isPlayableSrc } from '../../components/ClipPlaceholder
  * `bpm`/`emotionProbs` feed the baseline; `meanScore` (engagement via the
  * shared formula using the given boundaries+baseline) feeds the style probe.
  */
-export default function MeasureClip({ src, label, durationS, boundaries = DEFAULT_BOUNDARIES, emotionBaseline = null, bigger, onComplete }) {
+export default function MeasureClip({ src, label, poster, durationS, boundaries = DEFAULT_BOUNDARIES, emotionBaseline = null, bigger, onComplete }) {
   const tracking = useTracking();
   const videoRef = useRef(null);
+  const fellBackRef = useRef(false);
+  const retriedRef = useRef(false);
+  const [clipState, setClipState] = useState('loading'); // loading | playing | needsTap | fallback
   const blinksRef = useRef([]);
   const presenceRef = useRef([]);
   const emotionRef = useRef([]);
@@ -91,6 +94,7 @@ export default function MeasureClip({ src, label, durationS, boundaries = DEFAUL
         emotionProbs,
         meanScore: scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : null,
         blinks: blinksRef.current.length,
+        usedFallback: fellBackRef.current,
       });
     }
 
@@ -99,6 +103,15 @@ export default function MeasureClip({ src, label, durationS, boundaries = DEFAUL
       unsub();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [src]);
+
+  // Muted autoplay is normally allowed; if the browser blocks it, offer a tap.
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v || !isPlayableSrc(src)) return undefined;
+    const p = v.play?.();
+    if (p && typeof p.catch === 'function') p.catch(() => setClipState((s) => (s === 'playing' ? s : 'needsTap')));
+    return undefined;
   }, [src]);
 
   const frac = Math.min(1, observedS / durationS);
@@ -112,12 +125,54 @@ export default function MeasureClip({ src, label, durationS, boundaries = DEFAUL
   return (
     <div className="space-y-3">
       <div className={`relative overflow-hidden rounded-xl bg-black ${bigger ? 'aspect-video' : 'aspect-video max-h-80'}`}>
-        {isPlayableSrc(src) ? (
-          <video ref={videoRef} src={src} className="h-full w-full object-contain" autoPlay muted playsInline loop
-            onError={() => { /* measurement continues from the tracker regardless */ }} />
+        {isPlayableSrc(src) && clipState !== 'fallback' ? (
+          <video
+            ref={videoRef}
+            src={src}
+            poster={poster}
+            className="h-full w-full object-contain"
+            autoPlay
+            muted
+            playsInline
+            loop
+            preload="auto"
+            onCanPlayThrough={() => setClipState((s) => (s === 'loading' ? 'playing' : s))}
+            onPlaying={() => setClipState('playing')}
+            onError={() => {
+              // Retry once, then fall back to an in-browser placeholder and flag it.
+              if (!retriedRef.current && videoRef.current) {
+                retriedRef.current = true;
+                videoRef.current.load();
+              } else {
+                fellBackRef.current = true;
+                setClipState('fallback');
+              }
+            }}
+          />
         ) : (
-          // No real/remote clip — measurement runs on the tracker (mock or camera).
-          <ClipPlaceholder title={label} caption="Measuring your attention on this clip" className="h-full" />
+          // Clip couldn't load (or no real clip) — a generated placeholder of the
+          // same duration; measurement runs on the tracker regardless.
+          <ClipPlaceholder title={label} caption="Measuring your attention" className="h-full" />
+        )}
+        {/* Preparing veil until the clip can play through. */}
+        {clipState === 'loading' && (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/50 text-sm text-slate-300">
+            <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-sky-400 border-t-transparent" aria-hidden />
+            <span className="ml-2">Preparing clip…</span>
+          </div>
+        )}
+        {clipState === 'needsTap' && (
+          <button
+            onClick={() => { videoRef.current?.play?.().then(() => setClipState('playing')).catch(() => {}); }}
+            className="absolute inset-0 flex items-center justify-center bg-black/60 text-sm font-medium text-white"
+          >
+            Tap to start the clip
+          </button>
+        )}
+        {clipState === 'fallback' && (
+          <div className="absolute left-2 top-2 rounded bg-amber-500/20 px-2 py-0.5 text-[10px] text-amber-200" role="status">
+            Using a placeholder clip
+          </div>
         )}
         {/* Gentle no-face veil: always mounted, fades in/out (no abrupt pop). */}
         <div

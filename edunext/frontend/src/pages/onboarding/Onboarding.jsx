@@ -12,9 +12,8 @@ import {
 import { api } from '../../api/client.js';
 import { useAuth } from '../../auth/AuthContext.jsx';
 import { useTracking } from '../../tracking/TrackingContext.js';
-import { INTEREST_CLIPS, NEUTRAL_CLIP, STYLE_PROBE_CLIPS } from '../../content/clips.js';
+import { INTEREST_CLIPS, NEUTRAL_CLIP, STYLE_PROBE_CLIPS } from '../../content/calibrationClips.js';
 import MeasureClip from './MeasureClip.jsx';
-import VantaBackground from '../../motion/VantaBackground.jsx';
 import { PageTransition, Stagger, CountUp, InlineError } from '../../motion/primitives.jsx';
 
 const TOPIC_LABELS = { 'web-development': 'Web Development', 'data-science': 'Data Science', design: 'Design' };
@@ -103,6 +102,8 @@ export default function Onboarding() {
         emotionBaseline,
         clipSeconds: CONFIG.CALIBRATION_CLIP_S,
         completedAt: new Date().toISOString(),
+        // Flag a degraded read if any baseline clip fell back to a placeholder.
+        usedFallbackClip: !!(baseline.engaged?.usedFallback || baseline.neutral?.usedFallback),
         sourceQuality: {
           blinksEngaged: baseline.engaged?.blinks ?? 0,
           blinksNeutral: baseline.neutral?.blinks ?? 0,
@@ -121,8 +122,9 @@ export default function Onboarding() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
-      <VantaBackground />
+    <div className="relative min-h-screen overflow-hidden bg-slate-950">
+      {/* Plain dark background during onboarding — no WebGL/Vanta behind the
+          calibration clips (it would compete with the tracker + clip playback). */}
       <div className="relative z-10 mx-auto max-w-2xl p-4 sm:p-6">
         <Stepper step={step} />
         {error && <InlineError className="mb-4 rounded-lg bg-rose-500/10 p-3">{error}</InlineError>}
@@ -291,12 +293,12 @@ function BaselineStep({ mode, interests, onDone }) {
         we can see your face.
       </p>
       {phase === 'engaged' && (
-        <MeasureClip key="engaged" src={interestClip.src} label={`Interest clip — ${interestClip.label}`}
+        <MeasureClip key="engaged" src={interestClip.src} poster={interestClip.poster} label={`Interest clip — ${interestClip.label}`}
           durationS={CONFIG.CALIBRATION_CLIP_S} bigger
           onComplete={(r) => { setEngaged(r); setPhase('neutral'); }} />
       )}
       {phase === 'neutral' && (
-        <MeasureClip key="neutral" src={NEUTRAL_CLIP.src} label={`Neutral clip — ${NEUTRAL_CLIP.label}`}
+        <MeasureClip key="neutral" src={NEUTRAL_CLIP.src} poster={NEUTRAL_CLIP.poster} label={`Neutral clip — ${NEUTRAL_CLIP.label}`}
           durationS={CONFIG.CALIBRATION_CLIP_S} bigger
           onComplete={(r) => onDone({ engaged, neutral: r })} />
       )}
@@ -333,12 +335,12 @@ function StyleStep({ mode, boundaries, emotionBaseline, onDone }) {
       <h1>Learning-style probe</h1>
       <p className="text-slate-300">Two short clips on the same topic — one explained visually, one hands-on.</p>
       {phase === 'visual' && (
-        <MeasureClip key="sv" src={STYLE_PROBE_CLIPS.visual.src} label={`Visual — ${STYLE_PROBE_CLIPS.visual.label}`}
+        <MeasureClip key="sv" src={STYLE_PROBE_CLIPS.visual.src} poster={STYLE_PROBE_CLIPS.visual.poster} label={`Visual — ${STYLE_PROBE_CLIPS.visual.label}`}
           durationS={CONFIG.STYLE_PROBE_CLIP_S} boundaries={boundaries} emotionBaseline={emotionBaseline} bigger
           onComplete={(r) => { setVisual(r); setPhase('practical'); }} />
       )}
       {phase === 'practical' && (
-        <MeasureClip key="sp" src={STYLE_PROBE_CLIPS.practical.src} label={`Hands-on — ${STYLE_PROBE_CLIPS.practical.label}`}
+        <MeasureClip key="sp" src={STYLE_PROBE_CLIPS.practical.src} poster={STYLE_PROBE_CLIPS.practical.poster} label={`Hands-on — ${STYLE_PROBE_CLIPS.practical.label}`}
           durationS={CONFIG.STYLE_PROBE_CLIP_S} boundaries={boundaries} emotionBaseline={emotionBaseline} bigger
           onComplete={(r) => done(visual, r)} />
       )}

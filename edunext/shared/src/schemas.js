@@ -53,6 +53,10 @@ export const calibrationSchema = z.object({
       .optional(),
     clipSeconds: z.number().optional(),
     completedAt: z.string().optional(),
+    // Set when a calibration clip failed to load and an in-browser fallback was
+    // used, so the stored result records the degraded read. Optional + additive;
+    // no effect on calibration math.
+    usedFallbackClip: z.boolean().optional(),
     sourceQuality: z
       .object({
         blinksEngaged: z.number(),

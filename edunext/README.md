@@ -217,3 +217,32 @@ takes ~30–60 s — the app shows a "waking up" banner and recovers), and the f
 database is **ephemeral** (accounts reset on restart; placeholder courses
 auto-reseed). Attach a persistent disk to keep data. Use `/demo` (scripted
 simulation) as a webcam-free fallback when presenting.
+
+## Calibration clips
+
+Onboarding plays six short **calibration clips** (defined in one manifest,
+`frontend/src/content/calibrationClips.js`; files in
+`frontend/public/media/calibration/`):
+
+| File | Role | Length |
+|---|---|---|
+| `web-dev-interest.mp4` / `data-science-interest.mp4` / `design-interest.mp4` | engaged baseline per topic | 45 s |
+| `neutral.mp4` | low-engagement baseline | 45 s |
+| `probe-visual.mp4` / `probe-practical.mp4` | learning-style probe (same topic, different style) | 20 s |
+
+They are **generated, license-free placeholders** (on-brand motion graphics) — see
+`frontend/public/media/calibration/SOURCES.md`. The "interest" clips are only a rough
+proxy for genuine interest. Every clip is MP4/H.264/yuv420p, 1280×720, 30 fps, **no
+audio**, +faststart, no text/flicker, calm similar brightness, and well under 6 MB.
+
+**Replace a clip:** drop a file with the same name into
+`frontend/public/media/calibration/` (keep the spec), then run `npm run media:verify`.
+
+**Regenerate / verify:**
+```bash
+npm run media:generate   # re-render all six from scripts/media/ (needs dev tooling)
+npm run media:verify     # assert the spec + write thumbnails to docs/calibration-clips/
+```
+Durations come from `CONFIG` (`CALIBRATION_CLIP_S`, `STYLE_PROBE_CLIP_S`). If a clip
+fails to load at runtime, onboarding retries once then falls back to an in-browser
+placeholder and records `usedFallbackClip: true` in the calibration data.

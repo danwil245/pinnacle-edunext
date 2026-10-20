@@ -19,10 +19,14 @@
     "e2e": "npm run e2e -w @edunext/backend",
     "perf:check": "node scripts/perf/check.mjs",
     "predeploy": "node scripts/predeploy-check.mjs",
-    "test:deploy": "node e2e/deploy-smoke.spec.js"
+    "test:deploy": "node e2e/deploy-smoke.spec.js",
+    "media:generate": "node scripts/media/generate.mjs",
+    "media:verify": "node scripts/media/verify.mjs"
   },
   "devDependencies": {
-    "concurrently": "^9.1.0"
+    "concurrently": "^9.1.0",
+    "ffmpeg-static": "^5.3.0",
+    "ffprobe-static": "^3.1.0"
   },
   "engines": {
     "node": ">=20"
