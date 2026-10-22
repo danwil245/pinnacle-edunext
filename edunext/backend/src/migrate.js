@@ -109,7 +109,24 @@ export async function migrate(db) {
     CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
     CREATE INDEX IF NOT EXISTS idx_lessons_course ON lessons(course_id, position);
   `);
+
+  // Additive (idempotent): per-variant YouTube video references + optional notes.
+  // SQLite has no "ADD COLUMN IF NOT EXISTS", so check table_info first.
+  await addColumnIfMissing(db, 'lessons', 'visual_video_id', 'TEXT');
+  await addColumnIfMissing(db, 'lessons', 'practical_video_id', 'TEXT');
+  await addColumnIfMissing(db, 'lessons', 'visual_start_s', 'INTEGER');
+  await addColumnIfMissing(db, 'lessons', 'practical_start_s', 'INTEGER');
+  await addColumnIfMissing(db, 'lessons', 'visual_notes', 'TEXT');
+  await addColumnIfMissing(db, 'lessons', 'practical_exercise', 'TEXT');
+
   return db;
+}
+
+async function addColumnIfMissing(db, table, col, type) {
+  const cols = await db.all(`PRAGMA table_info(${table})`);
+  if (!cols.some((c) => c.name === col)) {
+    await db.execute(`ALTER TABLE ${table} ADD COLUMN ${col} ${type}`);
+  }
 }
 
 // CLI: `npm run migrate` (cross-platform entry check)

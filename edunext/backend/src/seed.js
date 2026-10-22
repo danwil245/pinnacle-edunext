@@ -3,6 +3,7 @@ import { pathToFileURL } from 'node:url';
 import { openDb } from './db.js';
 import { migrate } from './migrate.js';
 import { COURSES } from './content/courses.js';
+import { videosFor } from './content/videos.js';
 
 /**
  * Seed placeholder courses + lessons. Idempotent: upserts by course slug and by
@@ -26,11 +27,25 @@ export async function seed(db) {
       for (const lesson of course.lessons) {
         const visual = JSON.stringify(lesson.visual);
         const practical = JSON.stringify(lesson.practical);
+        const v = videosFor(course.slug, lesson.position);
+        const vNotes = lesson.visual?.summary || null;
+        const pEx = lesson.practical?.task?.title || null;
+        const cols = [v.visualId, v.practicalId, v.visualStart ?? 0, v.practicalStart ?? 0, vNotes, pEx];
         const existing = await tx.get('SELECT id FROM lessons WHERE course_id = ? AND position = ?', [courseId, lesson.position]);
         if (existing) {
-          await tx.run('UPDATE lessons SET title=?, duration_s=?, visual=?, practical=? WHERE id=?', [lesson.title, lesson.duration_s, visual, practical, Number(existing.id)]);
+          await tx.run(
+            `UPDATE lessons SET title=?, duration_s=?, visual=?, practical=?,
+             visual_video_id=?, practical_video_id=?, visual_start_s=?, practical_start_s=?, visual_notes=?, practical_exercise=?
+             WHERE id=?`,
+            [lesson.title, lesson.duration_s, visual, practical, ...cols, Number(existing.id)]
+          );
         } else {
-          await tx.run('INSERT INTO lessons (course_id, position, title, duration_s, visual, practical) VALUES (?, ?, ?, ?, ?, ?)', [courseId, lesson.position, lesson.title, lesson.duration_s, visual, practical]);
+          await tx.run(
+            `INSERT INTO lessons (course_id, position, title, duration_s, visual, practical,
+             visual_video_id, practical_video_id, visual_start_s, practical_start_s, visual_notes, practical_exercise)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [courseId, lesson.position, lesson.title, lesson.duration_s, visual, practical, ...cols]
+          );
         }
       }
     }
