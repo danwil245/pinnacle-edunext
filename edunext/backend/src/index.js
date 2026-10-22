@@ -29,11 +29,21 @@ const db = openDb({ path: cfg.databasePath });
 
 try {
   await withRetry(() => migrate(db)); // idempotent
-  // Auto-seed placeholder courses so a fresh/wiped DB works with no manual step.
+  // Auto-seed so a fresh/wiped DB works with no manual step. Also re-run when an
+  // existing DB is missing lesson content added by a later migration (e.g. the
+  // video-id columns) so those rows get backfilled on deploy. seed() is an
+  // idempotent upsert on courses/lessons only — it never touches user data.
   const row = await db.get('SELECT COUNT(*) AS n FROM courses');
-  if (Number(row?.n || 0) === 0) {
+  const missing = await db.get(
+    'SELECT COUNT(*) AS n FROM lessons WHERE visual_video_id IS NULL OR practical_video_id IS NULL'
+  );
+  const needsSeed = Number(row?.n || 0) === 0;
+  const needsBackfill = Number(missing?.n || 0) > 0;
+  if (needsSeed || needsBackfill) {
     const counts = await seed(db);
-    log(`seeded ${counts.courses} courses / ${counts.lessons} lessons`);
+    log(
+      `${needsSeed ? 'seeded' : 'backfilled'} ${counts.courses} courses / ${counts.lessons} lessons`
+    );
   }
 } catch (err) {
   log('FATAL: database initialisation failed:', err.message);
