@@ -12,7 +12,7 @@ describe('privacy — tick upload payload', () => {
   let token;
   let sessionId;
   beforeEach(async () => {
-    app = makeApp();
+    app = await makeApp();
     ({ token } = await registerUser(app));
     const lessonId = await firstLessonId(app, token);
     const create = await request(app).post('/api/sessions').set('Authorization', `Bearer ${token}`).send({ lessonId });

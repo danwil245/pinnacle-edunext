@@ -15,22 +15,22 @@ export function profileRoutes() {
   const router = Router();
 
   // GET /api/me -> user + profile
-  router.get('/me', (req, res, next) => {
+  router.get('/me', async (req, res, next) => {
     try {
       const db = req.app.locals.db;
-      const user = db.prepare('SELECT id, email, name, created_at FROM users WHERE id = ?').get(req.userId);
+      const user = await db.get('SELECT id, email, name, created_at FROM users WHERE id = ?', [req.userId]);
       if (!user) return next(notFound('User not found'));
-      return res.json({ user, profile: loadProfile(db, req.userId) });
+      return res.json({ user, profile: await loadProfile(db, req.userId) });
     } catch (err) {
       return next(err);
     }
   });
 
   // DELETE /api/me -> delete the user and all their data (cascades)
-  router.delete('/me', (req, res, next) => {
+  router.delete('/me', async (req, res, next) => {
     try {
       const db = req.app.locals.db;
-      db.prepare('DELETE FROM users WHERE id = ?').run(req.userId);
+      await db.run('DELETE FROM users WHERE id = ?', [req.userId]);
       return res.json({ ok: true });
     } catch (err) {
       return next(err);
@@ -38,29 +38,29 @@ export function profileRoutes() {
   });
 
   // PUT /api/profile/interests -> validate slugs against known topics
-  router.put('/profile/interests', validate(interestsSchema), (req, res, next) => {
+  router.put('/profile/interests', validate(interestsSchema), async (req, res, next) => {
     try {
       const db = req.app.locals.db;
-      const topics = new Set(knownTopics(db));
+      const topics = new Set(await knownTopics(db));
       const invalid = req.body.interests.filter((s) => !topics.has(s));
       if (invalid.length) return next(badRequest(`Unknown topic(s): ${invalid.join(', ')}`));
-      db.prepare('UPDATE profiles SET interests = ?, updated_at = ? WHERE user_id = ?').run(
+      await db.run('UPDATE profiles SET interests = ?, updated_at = ? WHERE user_id = ?', [
         JSON.stringify(req.body.interests),
         new Date().toISOString(),
-        req.userId
-      );
-      return res.json({ profile: loadProfile(db, req.userId) });
+        req.userId,
+      ]);
+      return res.json({ profile: await loadProfile(db, req.userId) });
     } catch (err) {
       return next(err);
     }
   });
 
   // PUT /api/profile/calibration -> store calibration, seed initial style, finish onboarding
-  router.put('/profile/calibration', validate(calibrationSchema), (req, res, next) => {
+  router.put('/profile/calibration', validate(calibrationSchema), async (req, res, next) => {
     try {
       const db = req.app.locals.db;
       const { calibration, styleProbe } = req.body;
-      const current = loadProfile(db, req.userId);
+      const current = await loadProfile(db, req.userId);
 
       let stats = current.styleStats;
       let style = current.learningStyle;
@@ -72,32 +72,27 @@ export function profileRoutes() {
         confidence = detected.confidence;
       }
 
-      db.prepare(
+      await db.run(
         `UPDATE profiles SET calibration = ?, onboarding_complete = 1, learning_style = ?,
-         style_confidence = ?, style_stats = ?, updated_at = ? WHERE user_id = ?`
-      ).run(
-        JSON.stringify(calibration),
-        style,
-        confidence,
-        JSON.stringify(stats),
-        new Date().toISOString(),
-        req.userId
+         style_confidence = ?, style_stats = ?, updated_at = ? WHERE user_id = ?`,
+        [JSON.stringify(calibration), style, confidence, JSON.stringify(stats), new Date().toISOString(), req.userId]
       );
-      return res.json({ profile: loadProfile(db, req.userId) });
+      return res.json({ profile: await loadProfile(db, req.userId) });
     } catch (err) {
       return next(err);
     }
   });
 
   // DELETE /api/profile/calibration -> reset for recalibration
-  router.delete('/profile/calibration', (req, res, next) => {
+  router.delete('/profile/calibration', async (req, res, next) => {
     try {
       const db = req.app.locals.db;
-      db.prepare(
+      await db.run(
         `UPDATE profiles SET calibration = NULL, onboarding_complete = 0, learning_style = 'unknown',
-         style_confidence = 0, style_stats = ?, updated_at = ? WHERE user_id = ?`
-      ).run(DEFAULT_STYLE_STATS, new Date().toISOString(), req.userId);
-      return res.json({ profile: loadProfile(db, req.userId) });
+         style_confidence = 0, style_stats = ?, updated_at = ? WHERE user_id = ?`,
+        [DEFAULT_STYLE_STATS, new Date().toISOString(), req.userId]
+      );
+      return res.json({ profile: await loadProfile(db, req.userId) });
     } catch (err) {
       return next(err);
     }

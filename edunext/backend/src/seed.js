@@ -10,49 +10,35 @@ import { COURSES } from './content/courses.js';
  *
  * @param {import('better-sqlite3').Database} db
  */
-export function seed(db) {
-  const upsertCourse = db.prepare(`
-    INSERT INTO courses (slug, title, topic, description, level, practical_ratio)
-    VALUES (@slug, @title, @topic, @description, @level, @practical_ratio)
-    ON CONFLICT(slug) DO UPDATE SET
-      title=excluded.title, topic=excluded.topic, description=excluded.description,
-      level=excluded.level, practical_ratio=excluded.practical_ratio
-  `);
-  const courseIdBySlug = db.prepare('SELECT id FROM courses WHERE slug = ?');
-  const findLesson = db.prepare('SELECT id FROM lessons WHERE course_id = ? AND position = ?');
-  const insertLesson = db.prepare(`
-    INSERT INTO lessons (course_id, position, title, duration_s, visual, practical)
-    VALUES (@course_id, @position, @title, @duration_s, @visual, @practical)
-  `);
-  const updateLesson = db.prepare(`
-    UPDATE lessons SET title=@title, duration_s=@duration_s, visual=@visual, practical=@practical
-    WHERE id=@id
-  `);
-
-  const run = db.transaction(() => {
+export async function seed(db) {
+  await db.transaction(async (tx) => {
     for (const course of COURSES) {
-      upsertCourse.run(course);
-      const { id: courseId } = courseIdBySlug.get(course.slug);
+      await tx.run(
+        `INSERT INTO courses (slug, title, topic, description, level, practical_ratio)
+         VALUES (?, ?, ?, ?, ?, ?)
+         ON CONFLICT(slug) DO UPDATE SET
+           title=excluded.title, topic=excluded.topic, description=excluded.description,
+           level=excluded.level, practical_ratio=excluded.practical_ratio`,
+        [course.slug, course.title, course.topic, course.description, course.level, course.practical_ratio]
+      );
+      const c = await tx.get('SELECT id FROM courses WHERE slug = ?', [course.slug]);
+      const courseId = Number(c.id);
       for (const lesson of course.lessons) {
-        const row = {
-          course_id: courseId,
-          position: lesson.position,
-          title: lesson.title,
-          duration_s: lesson.duration_s,
-          visual: JSON.stringify(lesson.visual),
-          practical: JSON.stringify(lesson.practical),
-        };
-        const existing = findLesson.get(courseId, lesson.position);
-        if (existing) updateLesson.run({ ...row, id: existing.id });
-        else insertLesson.run(row);
+        const visual = JSON.stringify(lesson.visual);
+        const practical = JSON.stringify(lesson.practical);
+        const existing = await tx.get('SELECT id FROM lessons WHERE course_id = ? AND position = ?', [courseId, lesson.position]);
+        if (existing) {
+          await tx.run('UPDATE lessons SET title=?, duration_s=?, visual=?, practical=? WHERE id=?', [lesson.title, lesson.duration_s, visual, practical, Number(existing.id)]);
+        } else {
+          await tx.run('INSERT INTO lessons (course_id, position, title, duration_s, visual, practical) VALUES (?, ?, ?, ?, ?, ?)', [courseId, lesson.position, lesson.title, lesson.duration_s, visual, practical]);
+        }
       }
     }
   });
-  run();
 
-  const courseCount = db.prepare('SELECT COUNT(*) n FROM courses').get().n;
-  const lessonCount = db.prepare('SELECT COUNT(*) n FROM lessons').get().n;
-  return { courses: courseCount, lessons: lessonCount };
+  const cc = await db.get('SELECT COUNT(*) n FROM courses');
+  const lc = await db.get('SELECT COUNT(*) n FROM lessons');
+  return { courses: Number(cc.n), lessons: Number(lc.n) };
 }
 
 /** Collect every distinct video URL referenced by the seed content. */
@@ -84,12 +70,11 @@ async function checkVideos() {
 
 // CLI: `npm run seed` (cross-platform entry check)
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const path = process.env.DB_PATH || './data/edunext.db';
-  const db = openDb(path);
-  migrate(db);
-  const counts = seed(db);
+  const db = openDb();
+  await migrate(db);
+  const counts = await seed(db);
   // eslint-disable-next-line no-console
-  console.log(`Seeded ${counts.courses} courses, ${counts.lessons} lessons into ${path}`);
+  console.log(`Seeded ${counts.courses} courses, ${counts.lessons} lessons (${db.kind}: ${db.host})`);
   await checkVideos();
-  db.close();
+  await db.close();
 }

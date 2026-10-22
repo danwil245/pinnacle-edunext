@@ -4,8 +4,8 @@ import { makeApp } from './helpers.js';
 
 describe('auth routes', () => {
   let app;
-  beforeEach(() => {
-    app = makeApp();
+  beforeEach(async () => {
+    app = await makeApp();
   });
 
   it('registers a new user and returns a token', async () => {

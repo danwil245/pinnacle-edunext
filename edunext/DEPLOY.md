@@ -133,3 +133,27 @@ an empty `edunext`. Make `edunext/` a normal subfolder of the repo you connect
 (remove the nested `.git`, `git add edunext`, commit, push), **or** connect a repo
 whose root *is* the EduNext app. With `edunext/` as a subfolder: Vercel Root
 Directory = `edunext`; move `render.yaml` to the repo root and set `rootDir: edunext`.
+
+## Persistent database (Turso)
+
+The backend uses **Turso (libSQL)** in production so accounts and sessions survive
+restarts/redeploys. Dev and tests use a local SQLite file automatically (no setup).
+
+**Set up Turso (~10 min, in the dashboard):**
+1. Sign up at **turso.tech** → create a database (pick a region near your users).
+2. Copy the **Database URL** (starts with `libsql://`) and create an **auth token**.
+3. In **Render → your `edunext-api` service → Environment**, add two variables
+   (do NOT commit them anywhere):
+   - `TURSO_DATABASE_URL` = the `libsql://…` URL
+   - `TURSO_AUTH_TOKEN` = the token
+   Save → the service redeploys.
+4. (Optional, local) put the same two in `backend/.env` (gitignored) to develop
+   against Turso; otherwise local dev uses `./data/edunext.db`.
+
+The server logs which backend it uses at boot (`db: Turso (<host>)` or
+`db: local file`) — never the token or full URL. In production it **refuses to
+start** without `TURSO_DATABASE_URL` unless `ALLOW_LOCAL_DB=1` is set. Migrations
+and the course seed run automatically at boot against whichever DB is configured.
+
+**Verify persistence:** register on the live site → in Render, **Manual Deploy →
+Restart** (or redeploy) → log in again with the same account; it still exists.

@@ -3,50 +3,49 @@ import { rankCourses, chooseVariant } from '@edunext/shared';
 import { notFound } from '../middleware/error.js';
 import { loadProfile, publicCourse } from './helpers.js';
 
-function courseProgress(db, courseId, userId) {
-  const total = db.prepare('SELECT COUNT(*) n FROM lessons WHERE course_id = ?').get(courseId).n;
-  const completed = db
-    .prepare(
+async function courseProgress(db, courseId, userId) {
+  const total = Number((await db.get('SELECT COUNT(*) n FROM lessons WHERE course_id = ?', [courseId])).n);
+  const completed = Number(
+    (await db.get(
       `SELECT COUNT(*) n FROM lesson_progress lp
        JOIN lessons l ON lp.lesson_id = l.id
-       WHERE l.course_id = ? AND lp.user_id = ?`
-    )
-    .get(courseId, userId).n;
-  const started =
-    !!db.prepare('SELECT 1 FROM enrollments WHERE user_id = ? AND course_id = ?').get(userId, courseId) ||
-    !!db
-      .prepare('SELECT 1 FROM sessions s JOIN lessons l ON s.lesson_id = l.id WHERE s.user_id = ? AND l.course_id = ? LIMIT 1')
-      .get(userId, courseId);
-  return { total, completed, started };
+       WHERE l.course_id = ? AND lp.user_id = ?`,
+      [courseId, userId]
+    )).n
+  );
+  const enr = await db.get('SELECT 1 FROM enrollments WHERE user_id = ? AND course_id = ?', [userId, courseId]);
+  const sess = await db.get(
+    'SELECT 1 FROM sessions s JOIN lessons l ON s.lesson_id = l.id WHERE s.user_id = ? AND l.course_id = ? LIMIT 1',
+    [userId, courseId]
+  );
+  return { total, completed, started: !!enr || !!sess };
 }
 
 export function courseRoutes() {
   const router = Router();
 
   // GET /api/courses -> ranked list with reasons
-  router.get('/courses', (req, res, next) => {
+  router.get('/courses', async (req, res, next) => {
     try {
       const db = req.app.locals.db;
-      const profile = loadProfile(db, req.userId);
-      const rows = db.prepare('SELECT * FROM courses').all();
+      const profile = await loadProfile(db, req.userId);
+      const rows = await db.all('SELECT * FROM courses');
 
       const sessionsByTopic = Object.fromEntries(
-        db
-          .prepare(
-            `SELECT c.topic topic, AVG(s.avg_score) m FROM sessions s
+        (await db.all(
+          `SELECT c.topic topic, AVG(s.avg_score) m FROM sessions s
              JOIN lessons l ON s.lesson_id = l.id
              JOIN courses c ON l.course_id = c.id
              WHERE s.user_id = ? AND s.avg_score IS NOT NULL
-             GROUP BY c.topic`
-          )
-          .all(req.userId)
-          .map((r) => [r.topic, r.m])
+             GROUP BY c.topic`,
+          [req.userId]
+        )).map((r) => [r.topic, r.m])
       );
 
       const progressBySlug = {};
       const progressByCourse = {};
       for (const r of rows) {
-        const p = courseProgress(db, r.id, req.userId);
+        const p = await courseProgress(db, r.id, req.userId);
         progressBySlug[r.slug] = { completed: p.completed, total: p.total };
         progressByCourse[r.slug] = (p.started || p.completed > 0) && p.completed < p.total;
       }
@@ -75,37 +74,36 @@ export function courseRoutes() {
   });
 
   // GET /api/courses/:slug -> course + lessons (no variant bodies) + progress
-  router.get('/courses/:slug', (req, res, next) => {
+  router.get('/courses/:slug', async (req, res, next) => {
     try {
       const db = req.app.locals.db;
-      const course = db.prepare('SELECT * FROM courses WHERE slug = ?').get(req.params.slug);
+      const course = await db.get('SELECT * FROM courses WHERE slug = ?', [req.params.slug]);
       if (!course) return next(notFound('Course not found'));
 
-      const lessons = db
-        .prepare('SELECT id, position, title, duration_s FROM lessons WHERE course_id = ? ORDER BY position')
-        .all(course.id);
+      const lessons = await db.all(
+        'SELECT id, position, title, duration_s FROM lessons WHERE course_id = ? ORDER BY position',
+        [course.id]
+      );
       const completed = new Set(
-        db
-          .prepare(
-            `SELECT lp.lesson_id id FROM lesson_progress lp
+        (await db.all(
+          `SELECT lp.lesson_id id FROM lesson_progress lp
              JOIN lessons l ON lp.lesson_id = l.id
-             WHERE l.course_id = ? AND lp.user_id = ?`
-          )
-          .all(course.id, req.userId)
-          .map((r) => r.id)
+             WHERE l.course_id = ? AND lp.user_id = ?`,
+          [course.id, req.userId]
+        )).map((r) => Number(r.id))
       );
 
-      const profile = loadProfile(db, req.userId);
+      const profile = await loadProfile(db, req.userId);
       return res.json({
         course: publicCourse(course),
         lessons: lessons.map((l) => ({
-          id: l.id,
+          id: Number(l.id),
           position: l.position,
           title: l.title,
           durationS: l.duration_s,
-          completed: completed.has(l.id),
+          completed: completed.has(Number(l.id)),
         })),
-        progress: courseProgress(db, course.id, req.userId),
+        progress: await courseProgress(db, course.id, req.userId),
         servedStyle: { style: profile.learningStyle, confidence: profile.styleConfidence },
       });
     } catch (err) {
@@ -114,17 +112,17 @@ export function courseRoutes() {
   });
 
   // GET /api/lessons/:id -> both variant bodies + server-chosen servedVariant
-  router.get('/lessons/:id', (req, res, next) => {
+  router.get('/lessons/:id', async (req, res, next) => {
     try {
       const db = req.app.locals.db;
-      const lesson = db.prepare('SELECT * FROM lessons WHERE id = ?').get(Number(req.params.id));
+      const lesson = await db.get('SELECT * FROM lessons WHERE id = ?', [Number(req.params.id)]);
       if (!lesson) return next(notFound('Lesson not found'));
-      const profile = loadProfile(db, req.userId);
+      const profile = await loadProfile(db, req.userId);
       const servedVariant = chooseVariant(profile.learningStyle, profile.styleConfidence);
       return res.json({
         lesson: {
-          id: lesson.id,
-          courseId: lesson.course_id,
+          id: Number(lesson.id),
+          courseId: Number(lesson.course_id),
           position: lesson.position,
           title: lesson.title,
           durationS: lesson.duration_s,
