@@ -13,7 +13,7 @@ describe('session lifecycle', () => {
   let token;
   let lessonId;
   beforeEach(async () => {
-    app = makeApp();
+    app = await makeApp();
     ({ token } = await registerUser(app));
     lessonId = await firstLessonId(app, token);
   });

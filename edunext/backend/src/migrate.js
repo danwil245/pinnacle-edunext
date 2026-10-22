@@ -1,15 +1,16 @@
 import 'dotenv/config';
 import { pathToFileURL } from 'node:url';
-import { openDb } from './db.js';
+import { openDb, enableForeignKeys } from './db.js';
 
 /**
  * Create every table + index if absent. Idempotent: safe to run repeatedly.
  * Mirrors the data model in the build spec (Section 5).
  *
- * @param {import('better-sqlite3').Database} db
+ * @param {ReturnType<import('./db.js').openDb>} db
  */
-export function migrate(db) {
-  db.exec(`
+export async function migrate(db) {
+  await enableForeignKeys(db);
+  await db.executeMultiple(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       email TEXT UNIQUE NOT NULL,
@@ -113,10 +114,9 @@ export function migrate(db) {
 
 // CLI: `npm run migrate` (cross-platform entry check)
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const path = process.env.DB_PATH || './data/edunext.db';
-  const db = openDb(path);
-  migrate(db);
+  const db = openDb();
+  await migrate(db);
   // eslint-disable-next-line no-console
-  console.log(`Migrated database at ${path}`);
-  db.close();
+  console.log(`Migrated database (${db.kind}: ${db.host})`);
+  await db.close();
 }

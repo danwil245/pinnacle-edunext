@@ -5,10 +5,10 @@ import { seed } from '../src/seed.js';
 import { createApp } from '../src/app.js';
 
 /** A fresh in-memory app (migrated + seeded) for each test. */
-export function makeApp() {
+export async function makeApp() {
   const db = openDb(':memory:');
-  migrate(db);
-  seed(db);
+  await migrate(db);
+  await seed(db);
   return createApp(db, { corsOrigin: '*' });
 }
 

@@ -14,8 +14,8 @@ import { seed } from '../src/seed.js';
 import { createApp } from '../src/app.js';
 
 const db = openDb(':memory:');
-migrate(db);
-seed(db);
+await migrate(db);
+await seed(db);
 const server = createApp(db, { corsOrigin: '*' }).listen(0);
 const port = server.address().port;
 const B = `http://localhost:${port}/api`;

@@ -6,7 +6,7 @@ describe('course routes', () => {
   let app;
   let token;
   beforeEach(async () => {
-    app = makeApp();
+    app = await makeApp();
     ({ token } = await registerUser(app));
   });
 

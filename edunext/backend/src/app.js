@@ -62,10 +62,10 @@ export function createApp(db, opts = {}) {
   app.get('/health', (_req, res) =>
     res.json({ status: 'ok', version, uptime: Math.round((Date.now() - startedAt) / 1000) })
   );
-  app.get('/health/ready', (_req, res) => {
+  app.get('/health/ready', async (_req, res) => {
     try {
-      db.prepare('SELECT 1').get();
-      res.json({ status: 'ok', db: 'ok' });
+      await db.get('SELECT 1');
+      res.json({ status: 'ok', db: db.kind || 'ok' });
     } catch {
       res.status(503).json({ status: 'error', db: 'unavailable' });
     }

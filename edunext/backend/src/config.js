@@ -21,6 +21,12 @@ const schema = z
     // DATABASE_PATH is the documented name; DB_PATH kept for back-compat.
     DATABASE_PATH: z.string().optional(),
     DB_PATH: z.string().optional(),
+    // Turso (libSQL) — production persistent database. If TURSO_DATABASE_URL is
+    // unset, the server falls back to a local SQLite file (dev/tests).
+    TURSO_DATABASE_URL: z.string().optional(),
+    TURSO_AUTH_TOKEN: z.string().optional(),
+    // Escape hatch to allow a local file DB in production (not recommended).
+    ALLOW_LOCAL_DB: z.string().optional(),
     JWT_SECRET: z.string().optional(),
     // Comma-separated exact origins, e.g. "https://app.vercel.app,http://localhost:4173".
     CORS_ORIGINS: z.string().optional(),
@@ -42,6 +48,16 @@ const schema = z
       // deploy you don't yet know the frontend URL (it needs the backend URL
       // first), so the server must start with an empty allow-list and be wired up
       // afterwards. We warn (below) instead of refusing to start.
+
+      // Persistence: in production a Turso URL is required (so data survives
+      // restarts), unless ALLOW_LOCAL_DB=1 is explicitly set.
+      if (!env.TURSO_DATABASE_URL && env.ALLOW_LOCAL_DB !== '1') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['TURSO_DATABASE_URL'],
+          message: 'In production set TURSO_DATABASE_URL (+ TURSO_AUTH_TOKEN) for a persistent database, or set ALLOW_LOCAL_DB=1 to use an (ephemeral) local file.',
+        });
+      }
     }
   });
 
@@ -84,6 +100,9 @@ export function loadConfig(env = process.env) {
     isProd: e.NODE_ENV === 'production',
     port: e.PORT,
     databasePath: e.DATABASE_PATH || e.DB_PATH || './data/edunext.db',
+    tursoUrl: e.TURSO_DATABASE_URL || null,
+    tursoAuthToken: e.TURSO_AUTH_TOKEN || null,
+    dbKind: e.TURSO_DATABASE_URL ? 'Turso' : 'local file',
     jwtSecret: e.JWT_SECRET || 'dev-only-insecure-secret-change-me',
     corsOrigins,
     corsPatterns,

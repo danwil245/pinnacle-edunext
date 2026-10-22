@@ -275,3 +275,30 @@ shrinking ambition, or stripping animation.
   deleted; only onboarding imported it). The backend's own
   `backend/src/content/calibrationClips.js` is a separate, untouched placeholder set
   (lesson content, out of scope for this task).
+
+---
+
+## Turso and YouTube
+
+### Job 1 — Turso (libSQL) persistence (done)
+- Replaced synchronous `better-sqlite3` with the **async** `@libsql/client`. New
+  `backend/src/db.js` exposes `get/all/run/execute/batch/transaction/executeMultiple`;
+  all routes/services converted to `await`. Removed `better-sqlite3` from deps.
+- Config: `TURSO_DATABASE_URL` (+ `TURSO_AUTH_TOKEN`) → Turso in prod; unset → local
+  file from `DATABASE_PATH`; `:memory:` for tests (isolated per client). Production
+  refuses to boot without the Turso URL unless `ALLOW_LOCAL_DB=1`.
+- Foreign keys enabled per connection via `PRAGMA foreign_keys = ON` in `migrate`
+  (runs at every boot). libSQL honours it (verified).
+- Transactions: seed + session-create + bulk-tick-insert (`batch`) + session-end
+  (interactive `transaction`, rolls back on error). `lastInsertRowid` is a BigInt →
+  coerced with `Number()`. Unique-email violation still maps to 409.
+- libSQL rows serialise to JSON as **objects** (verified), so API response shapes are
+  unchanged; integer columns coerced with `Number()` where compared.
+- `/health/ready` does a real round trip (`SELECT 1`); boot retries with backoff.
+- Boot logs the DB **host only**, never the token/full URL.
+- **Remote (Turso) path not exercised in CI** — no credentials in this environment.
+  Verified the full async layer + persistence against a **local libSQL file** (register
+  → restart → login survives) and all 31 backend tests + the in-process e2e smoke pass.
+- **Job 2 (YouTube lessons) not yet started** — Job 1 was done first as a complete,
+  verifiable unit. YouTube remains to do (data model, player, media controller, real
+  verified CC videos, oEmbed check, tests).
