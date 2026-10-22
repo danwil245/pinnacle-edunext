@@ -10,3 +10,4 @@ export * from './curation.js';
 export * from './style.js';
 export * from './recommend.js';
 export * from './schemas.js';
+export * from './youtube.js';

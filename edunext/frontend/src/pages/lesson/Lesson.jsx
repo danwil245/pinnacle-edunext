@@ -6,7 +6,8 @@ import { api } from '../../api/client.js';
 import { useAuth } from '../../auth/AuthContext.jsx';
 import { useTracking } from '../../tracking/TrackingContext.js';
 import { Loading, ErrorState } from '../Home.jsx';
-import ClipPlaceholder, { isPlayableSrc } from '../../components/ClipPlaceholder.jsx';
+import ClipPlaceholder from '../../components/ClipPlaceholder.jsx';
+import YouTubePlayer from './YouTubePlayer.jsx';
 import { useLessonSession } from './useLessonSession.js';
 import BreakPrompt from './BreakPrompt.jsx';
 import BreakScreen from './BreakScreen.jsx';
@@ -29,12 +30,11 @@ export default function Lesson() {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const tracking = useTracking();
-  const videoRef = useRef(null);
+  const mediaRef = useRef(null); // the active MediaController (YouTube or HTML5)
   const chromeRef = useRef(null);
   const bodyRef = useRef(null);
   const [lesson, setLesson] = useState(null);
   const [error, setError] = useState('');
-  const [videoError, setVideoError] = useState(false);
 
   // Dev-only preview of the break UI (hard to trigger live — the curation engine
   // often fires a lighter action first and the cooldown preempts the break).
@@ -91,7 +91,7 @@ export default function Lesson() {
     durationS: lesson?.durationS || 120,
     boundaries,
     emotionBaseline,
-    videoRef,
+    mediaRef,
   });
 
   useEffect(() => {
@@ -221,20 +221,22 @@ export default function Lesson() {
       </div>
 
       <div className="relative overflow-hidden rounded-2xl bg-black">
-        {isPlayableSrc(body?.videoUrl) && !videoError ? (
-          <video
-            ref={videoRef}
-            src={body?.videoUrl}
-            className="aspect-video w-full"
-            controls
-            playsInline
+        {body?.videoId ? (
+          // YouTube lesson video, controlled via the MediaController so breaks /
+          // replay / pace / switch all work. Thumbnail-first; falls back on error.
+          <YouTubePlayer
+            key={body.videoId}
+            videoId={body.videoId}
+            startSeconds={body.startSeconds || 0}
+            title={lesson.title}
+            onController={(c) => { mediaRef.current = c; }}
             onEnded={() => s.setFeedbackPrompt({ kind: 'end' })}
-            onError={() => setVideoError(true)}
+            onFallback={() => s.switchVariant(s.variant === 'practical' ? 'visual' : 'practical')}
           />
         ) : (
-          // Placeholder content (no real/remote video): the session still runs on
-          // the tracker signal, so the lesson works end-to-end without a clip.
-          <ClipPlaceholder title={lesson.title} caption={`${s.variant || 'visual'} walkthrough — simulated clip`} />
+          // No video id for this variant — placeholder content. The session still
+          // runs on the tracker signal, so the lesson works end-to-end.
+          <ClipPlaceholder title={lesson.title} caption={`${s.variant || 'visual'} walkthrough — placeholder`} />
         )}
       </div>
 

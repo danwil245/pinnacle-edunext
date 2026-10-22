@@ -126,8 +126,18 @@ export function courseRoutes() {
           position: lesson.position,
           title: lesson.title,
           durationS: lesson.duration_s,
-          visual: JSON.parse(lesson.visual),
-          practical: JSON.parse(lesson.practical),
+          visual: {
+            ...JSON.parse(lesson.visual),
+            videoId: lesson.visual_video_id || null,
+            startSeconds: Number(lesson.visual_start_s || 0),
+            notes: lesson.visual_notes || null,
+          },
+          practical: {
+            ...JSON.parse(lesson.practical),
+            videoId: lesson.practical_video_id || null,
+            startSeconds: Number(lesson.practical_start_s || 0),
+            exercise: lesson.practical_exercise || null,
+          },
           servedVariant,
         },
       });

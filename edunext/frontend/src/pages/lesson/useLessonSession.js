@@ -18,9 +18,10 @@ const BREAK_S = CONFIG.BREAK.LENGTH_S; // suggested break length (from CONFIG)
 /**
  * Orchestrates a lesson session: create -> per-tick engagement + curation +
  * feedback prompts -> apply actions -> batch/flush ticks -> end + summary.
- * The video element is controlled via `videoRef` (playbackRate, seek, pause).
+ * Playback is driven through a MediaController (`mediaRef.current`) so the same
+ * curation actions work for a self-hosted <video> and a YouTube IFrame player.
  */
-export function useLessonSession({ lessonId, durationS, boundaries, emotionBaseline, videoRef }) {
+export function useLessonSession({ lessonId, durationS, boundaries, emotionBaseline, mediaRef }) {
   const tracking = useTracking();
 
   const [phase, setPhase] = useState('idle'); // idle|playing|paused|ended
@@ -86,8 +87,8 @@ export function useLessonSession({ lessonId, durationS, boundaries, emotionBasel
     setVariant(res.variant);
     variantRef.current = res.variant;
     setPhase('playing');
-    videoRef.current?.play?.().catch(() => {});
-  }, [lessonId, tracking, videoRef]);
+    mediaRef.current?.play?.();
+  }, [lessonId, tracking, mediaRef]);
 
   // Per-tick pipeline.
   useEffect(() => {
@@ -166,10 +167,16 @@ export function useLessonSession({ lessonId, durationS, boundaries, emotionBasel
     }
   }
 
+  // Set the rate, snapped to a rate the player actually supports (YouTube only
+  // allows discrete rates) and clamped to the CONFIG floor/ceiling.
   function setVideoRate(r) {
-    rateRef.current = r;
-    setRate(r);
-    if (videoRef.current) videoRef.current.playbackRate = r;
+    const m = mediaRef.current;
+    const avail = m?.getAvailableRates?.() || [0.5, 0.75, 1, 1.25, 1.5, 2];
+    const clamped = Math.max(CONFIG.CURATION.RATE_MIN, Math.min(CONFIG.CURATION.RATE_MAX, r));
+    const snapped = avail.reduce((best, x) => (Math.abs(x - clamped) < Math.abs(best - clamped) ? x : best), avail[0]);
+    rateRef.current = snapped;
+    setRate(snapped);
+    m?.setRate?.(snapped);
   }
 
   const acceptSuggestion = useCallback(() => {
@@ -179,20 +186,24 @@ export function useLessonSession({ lessonId, durationS, boundaries, emotionBasel
     logCuration(action, 'accepted');
     if (action.type === 'suggest_break') {
       setPhase('paused');
-      videoRef.current?.pause?.();
+      mediaRef.current?.pause?.();
       setBreakLeft(BREAK_S);
     } else if (action.type === 'replay_section') {
-      if (videoRef.current) {
-        videoRef.current.currentTime = Math.max(0, videoRef.current.currentTime - action.payload.seekBackS);
+      const m = mediaRef.current;
+      if (m) {
+        m.seekTo?.(Math.max(0, (m.getCurrentTime?.() || 0) - action.payload.seekBackS));
         setVideoRate(action.payload.rate);
       }
     } else if (action.type === 'switch_variant') {
       switchedRef.current = true;
       setVariant(action.payload.to);
       variantRef.current = action.payload.to;
+      // New variant loads fresh at normal speed.
+      rateRef.current = 1;
+      setRate(1);
     }
     setSuggestion(null);
-  }, [suggestion, logCuration, videoRef]);
+  }, [suggestion, logCuration, mediaRef]);
 
   const dismissSuggestion = useCallback(() => {
     if (suggestion) logCuration(suggestion, 'dismissed');
@@ -209,8 +220,19 @@ export function useLessonSession({ lessonId, durationS, boundaries, emotionBasel
     engStateRef.current = { ema: null };
     breakSnoozeUntilRef.current = tracking.getNow() + CONFIG.CURATION.COOLDOWN_S * 1000;
     setPhase('playing');
-    videoRef.current?.play?.().catch(() => {});
-  }, [videoRef, tracking]);
+    mediaRef.current?.play?.();
+  }, [mediaRef, tracking]);
+
+  // Switch to the other lesson variant (used by curation and by the player's
+  // embed-error fallback). The new variant's video loads fresh at normal speed.
+  const switchVariant = useCallback((to) => {
+    switchedRef.current = true;
+    variantRef.current = to;
+    setVariant(to);
+    rateRef.current = 1;
+    setRate(1);
+    logCuration({ type: 'switch_variant', reason: 'fallback or manual switch' }, 'accepted');
+  }, [logCuration]);
 
   // "Remind me later": dismiss and defer any break prompt for SNOOZE_S.
   const snoozeSuggestion = useCallback(() => {
@@ -233,12 +255,13 @@ export function useLessonSession({ lessonId, durationS, boundaries, emotionBasel
   const end = useCallback(async (completed) => {
     await flush();
     setPhase('ended');
-    videoRef.current?.pause?.();
+    mediaRef.current?.setRate?.(1); // reset playback speed on end
+    mediaRef.current?.pause?.();
     if (!sessionIdRef.current) return null;
     const res = await api(`/sessions/${sessionIdRef.current}/end`, { method: 'POST', body: { completed } });
     setSummary({ ...res.summary, sessionId: sessionIdRef.current });
     return sessionIdRef.current;
-  }, [flush, videoRef]);
+  }, [flush, mediaRef]);
 
   // Break countdown.
   useEffect(() => {
@@ -281,6 +304,7 @@ export function useLessonSession({ lessonId, durationS, boundaries, emotionBasel
     acceptSuggestion,
     dismissSuggestion,
     snoozeSuggestion,
+    switchVariant,
     resumeFromBreak,
     submitFeedback,
     setFeedbackPrompt,

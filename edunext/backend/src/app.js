@@ -10,6 +10,7 @@ import { profileRoutes } from './routes/profile.js';
 import { courseRoutes } from './routes/courses.js';
 import { sessionRoutes } from './routes/sessions.js';
 import { insightsRoutes } from './routes/insights.js';
+import { youtubeRoutes } from './routes/youtube.js';
 
 /**
  * App factory. Takes an open better-sqlite3 handle so tests can pass an
@@ -89,6 +90,7 @@ export function createApp(db, opts = {}) {
   app.use('/api', courseRoutes());
   app.use('/api', sessionRoutes());
   app.use('/api', insightsRoutes());
+  app.use('/api', youtubeRoutes());
 
   // Unknown API route -> 404 in the standard error shape.
   app.use('/api', (_req, _res, next) => next(notFound('Route not found')));

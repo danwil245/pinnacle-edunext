@@ -214,6 +214,8 @@ function ConsentStep({ mode, tracking, chooseMode, onNext }) {
         EduNext estimates your attention from your <b>blink rate</b> and facial expression, entirely{' '}
         <b>in your browser</b>. Your camera video never leaves your device — only derived numbers (a blink
         rate, a zone, an emotion label, a score) are saved. You can recalibrate or delete your data anytime.
+        Lessons play videos embedded from YouTube, which — like any embedded video — sends requests to
+        YouTube when you watch; your camera frames are never part of that.
       </p>
       <div className="grid gap-3 sm:grid-cols-3">
         <ModeButton active={mode === 'camera'} onClick={() => chooseMode('camera')} title="Enable camera"
