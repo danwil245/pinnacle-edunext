@@ -1,6 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
 import { loadYouTubeApi, createYouTubeController, ytStateToString, thumbnailUrl } from './mediaController.js';
 
+/** Human-readable reason for a YouTube failure, shown with the raw code. */
+function describeError(code) {
+  const map = {
+    2: 'the video ID was rejected',
+    5: 'the video can’t play in this player',
+    100: 'the video was removed or made private',
+    101: 'the owner doesn’t allow it to be embedded',
+    150: 'the owner doesn’t allow it to be embedded',
+    153: 'the page referrer was missing',
+    timeout: 'it took too long to load',
+    api: 'the YouTube player script failed to load',
+  };
+  return map[code] || 'an unknown error occurred';
+}
+
 /**
  * A privacy-enhanced YouTube player for a lesson. Shows only the thumbnail until
  * the learner clicks play (no player, no YouTube requests, faster course pages);
@@ -8,22 +23,42 @@ import { loadYouTubeApi, createYouTubeController, ytStateToString, thumbnailUrl 
  * youtube-nocookie host. Exposes a MediaController via `onController`, maps player
  * states to onState/onEnded, and on any embed error shows a friendly fallback
  * (never a blank box). Destroys the player on unmount.
+ *
+ * The player is created in an effect keyed only on [started, videoId] — NOT on
+ * the UI status — so transitioning to "ready"/"error" never tears down the live
+ * player (an earlier bug: onReady set the phase, which re-ran the create effect
+ * and its cleanup destroyed the player right after it loaded → black box).
  */
 export default function YouTubePlayer({ videoId, startSeconds = 0, title, onController, onState, onEnded, onError, onFallback }) {
   const hostRef = useRef(null);
   const playerRef = useRef(null);
   const controllerRef = useRef(null);
-  const [phase, setPhase] = useState('thumb'); // thumb | loading | ready | error
+  const [started, setStarted] = useState(false);
+  const [status, setStatus] = useState('idle'); // idle | loading | ready | error
+  const [errorCode, setErrorCode] = useState(null);
 
   // Reset to the thumbnail when the video changes (e.g. variant switch).
   useEffect(() => {
-    setPhase('thumb');
+    setStarted(false);
+    setStatus('idle');
+    setErrorCode(null);
   }, [videoId]);
 
   useEffect(() => {
-    if (phase !== 'loading') return undefined;
+    if (!started) return undefined;
     let cancelled = false;
-    let timer = setTimeout(() => { if (!cancelled && phase !== 'ready') { setPhase('error'); onError?.('timeout'); } }, 14000);
+    let ready = false;
+    setStatus('loading');
+    setErrorCode(null);
+
+    const fail = (code) => {
+      if (cancelled) return;
+      setErrorCode(code);
+      setStatus('error');
+      onError?.(code);
+    };
+
+    const timer = setTimeout(() => { if (!cancelled && !ready) fail('timeout'); }, 14000);
 
     loadYouTubeApi()
       .then((YT) => {
@@ -43,8 +78,9 @@ export default function YouTubePlayer({ videoId, startSeconds = 0, title, onCont
           events: {
             onReady: () => {
               if (cancelled) return;
+              ready = true;
               clearTimeout(timer);
-              setPhase('ready');
+              setStatus('ready');
               const ctrl = createYouTubeController(playerRef.current);
               controllerRef.current = ctrl;
               onController?.(ctrl);
@@ -60,13 +96,12 @@ export default function YouTubePlayer({ videoId, startSeconds = 0, title, onCont
             },
             onError: (e) => {
               clearTimeout(timer);
-              setPhase('error');
-              onError?.(e?.data ?? 'error');
+              fail(e?.data ?? 'error');
             },
           },
         });
       })
-      .catch(() => { if (!cancelled) { setPhase('error'); onError?.('api'); } });
+      .catch(() => fail('api'));
 
     return () => {
       cancelled = true;
@@ -76,15 +111,17 @@ export default function YouTubePlayer({ videoId, startSeconds = 0, title, onCont
       playerRef.current = null;
       onController?.(null);
     };
+    // Intentionally NOT keyed on `status`: only (re)create the player when the
+    // learner starts it or the video changes — never on a ready/error UI update.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, videoId]);
+  }, [started, videoId]);
 
   return (
     <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-black">
-      {phase === 'thumb' && (
+      {!started && (
         <button
           type="button"
-          onClick={() => setPhase('loading')}
+          onClick={() => setStarted(true)}
           className="group absolute inset-0 h-full w-full"
           aria-label={title ? `Play: ${title}` : 'Play video'}
         >
@@ -97,27 +134,36 @@ export default function YouTubePlayer({ videoId, startSeconds = 0, title, onCont
         </button>
       )}
 
-      {phase === 'loading' && (
-        <div className="absolute inset-0 grid place-items-center text-sm text-slate-300">
+      {started && status === 'loading' && (
+        <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center text-sm text-slate-300">
           <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-sky-400 border-t-transparent" aria-hidden />
         </div>
       )}
 
-      {/* The API replaces this node with the iframe. Kept mounted for loading/ready. */}
-      {(phase === 'loading' || phase === 'ready') && (
+      {/* The API replaces this node with the iframe. Stays mounted while the
+          player is alive (loading/ready) so a status change never unmounts it. */}
+      {started && status !== 'error' && (
         <div className="absolute inset-0 h-full w-full">
           <div ref={hostRef} className="h-full w-full" />
         </div>
       )}
 
-      {phase === 'error' && (
+      {started && status === 'error' && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-6 text-center text-slate-300">
-          <p className="max-w-sm text-sm">This video can’t be played here (it may be unavailable or have embedding disabled).</p>
+          <p className="max-w-sm text-sm">
+            This video can’t be played here — {describeError(errorCode)}
+            {errorCode != null && <span className="text-slate-400"> (error {String(errorCode)})</span>}.
+          </p>
           <div className="flex flex-wrap justify-center gap-2">
             {onFallback && (
               <button className="btn-ghost" onClick={onFallback}>Use the other version</button>
             )}
-            <button className="btn-ghost" onClick={() => setPhase('thumb')}>Try again</button>
+            <button
+              className="btn-ghost"
+              onClick={() => { setStarted(false); setStatus('idle'); setErrorCode(null); }}
+            >
+              Try again
+            </button>
           </div>
         </div>
       )}

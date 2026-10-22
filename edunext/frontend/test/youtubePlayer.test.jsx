@@ -45,7 +45,9 @@ describe('YouTubePlayer', () => {
     fireEvent.click(screen.getByRole('button', { name: /play/i }));
     await waitFor(() => expect(lastEvents).toBeTruthy());
     lastEvents.onError({ data: 150 });
-    await screen.findByText(/can.t be played/i);
+    // The fallback message surfaces the raw YT error code.
+    await screen.findByText(/error 150/i);
+    expect(screen.getByText(/can.t be played/i)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: /use the other version/i }));
     expect(onFallback).toHaveBeenCalled();
   });

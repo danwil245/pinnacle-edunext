@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview --port 5173",
     "test": "vitest run",
+    "test:yt": "node e2e/youtube-player.spec.mjs",
     "postinstall": "node scripts/copy-face-models.mjs || true",
     "copy-models": "node scripts/copy-face-models.mjs"
   },
