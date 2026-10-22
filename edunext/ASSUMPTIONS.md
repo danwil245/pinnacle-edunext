@@ -302,3 +302,27 @@ shrinking ambition, or stripping animation.
 - **Job 2 (YouTube lessons) not yet started** — Job 1 was done first as a complete,
   verifiable unit. YouTube remains to do (data model, player, media controller, real
   verified CC videos, oEmbed check, tests).
+
+### Job 2 — YouTube lessons (done)
+- Data model: additive idempotent columns on `lessons` (visual/practical video id +
+  start + notes) via `table_info` check; seeded from `content/videos.js`; served in
+  the lesson body. Placeholder content kept as the fallback.
+- Videos: all 18 variants sourced via web search and **oEmbed-verified** (exist +
+  embedding enabled); recorded in `VIDEO_SOURCES.md`. No invented IDs; none left as
+  placeholder. Honest licence note — embeddable (verified) but mostly standard
+  YouTube licence, not CC.
+- `shared/youtube.js` `parseYouTubeUrl` + backend `GET /api/youtube/check` (oEmbed,
+  auth, cached). `MediaController` (HTML5 + YouTube) + `YouTubePlayer` (lazy, once,
+  StrictMode-safe loader; youtube-nocookie; thumbnail-first; error fallback).
+- Curation mapped onto the controller (break/replay/slow/speed/switch); rate snapped
+  to the player's available rates and clamped to CONFIG RATE_MIN/MAX; reset on
+  end/switch. CSP/referrer verified compatible (no restrictive CSP; Referrer-Policy
+  strict-origin-when-cross-origin).
+- **Deviation:** used the player **component test** (mocked IFrame API) + controller
+  unit tests to cover the YouTube behaviour deterministically, rather than a live
+  Playwright lesson walk (which would need a browser-level YT mock + backend). The
+  component/unit tests exercise ready/state/ended/error-fallback and the adapters.
+- **Demo mode (`/demo`)** is a scripted *pipeline* simulation (engagement ring), not
+  a lesson player — it embeds no YouTube video, so it works offline unchanged.
+- Privacy copy updated (consent + landing + README): camera frames never leave; the
+  YouTube iframe makes its own requests; ads/overlays can affect measured engagement.

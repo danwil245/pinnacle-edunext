@@ -246,3 +246,24 @@ npm run media:verify     # assert the spec + write thumbnails to docs/calibratio
 Durations come from `CONFIG` (`CALIBRATION_CLIP_S`, `STYLE_PROBE_CLIP_S`). If a clip
 fails to load at runtime, onboarding retries once then falls back to an in-browser
 placeholder and records `usedFallbackClip: true` in the calibration data.
+
+## Lesson videos (YouTube)
+
+Each lesson plays a real, embeddable YouTube video per variant (a visual explainer
+and a hands-on practical), listed in `backend/src/content/VIDEO_SOURCES.md` and
+verified via YouTube oEmbed. They play through the IFrame Player API (on the
+`youtube-nocookie` host, thumbnail-first — no player loads until you click), driven
+by a `MediaController` so the adaptive actions still work: **break** pauses/resumes,
+**replay** seeks back, **slow down / speed up** change the playback rate (snapped to
+YouTube's available rates), and **switch variant** loads the other video. If a video
+is removed or has embedding disabled, the player shows a fallback (switch variant /
+retry) — never a blank box. Replace or re-source videos in
+`backend/src/content/videos.js`, verifying with `GET /api/youtube/check?videoId=…`.
+
+**Privacy:** your camera frames never leave the browser (unchanged). The YouTube
+iframe itself makes requests to YouTube like any embedded video; that is separate
+from the on-device sensing.
+
+**Limitations:** YouTube can show ads or overlays that we can't detect, which can
+affect the measured engagement during those seconds; paused/buffering time is not
+counted as engaged time. Embeddability can change over time (handled by the fallback).

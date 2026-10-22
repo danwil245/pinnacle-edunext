@@ -336,7 +336,8 @@ function Privacy() {
         <p className="mx-auto mt-3 max-w-xl text-slate-300">
           All sensing runs in your browser. Only derived numbers — a blink rate, a zone, an emotion
           label, a score — are ever saved. A test in our codebase asserts the upload payload carries
-          no image data. “Delete my data” removes your account and every related row.
+          no image data. “Delete my data” removes your account and every related row. (Lesson videos are
+          embedded from YouTube, which makes its own requests like any embed — your camera is never part of that.)
         </p>
       </Reveal>
     </section>
