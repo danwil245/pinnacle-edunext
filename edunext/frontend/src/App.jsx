@@ -29,6 +29,14 @@ const Profile = lazy(() => import('./pages/Profile.jsx'));
 const Insights = lazy(() => import('./pages/Insights.jsx'));
 const Lesson = lazy(() => import('./pages/lesson/Lesson.jsx'));
 const Summary = lazy(() => import('./pages/Summary.jsx'));
+const TeacherLayout = lazy(() => import('./pages/teacher/TeacherLayout.jsx'));
+const TeacherHome = lazy(() => import('./pages/teacher/TeacherHome.jsx'));
+const TeacherCourses = lazy(() => import('./pages/teacher/TeacherCourses.jsx'));
+const TeacherCourseNew = lazy(() => import('./pages/teacher/TeacherCourseNew.jsx'));
+const TeacherCourseEditor = lazy(() => import('./pages/teacher/TeacherCourseEditor.jsx'));
+const TeacherCourseAnalytics = lazy(() => import('./pages/teacher/TeacherCourseAnalytics.jsx'));
+const TeacherStudents = lazy(() => import('./pages/teacher/TeacherStudents.jsx'));
+const TeacherStudentDetail = lazy(() => import('./pages/teacher/TeacherStudentDetail.jsx'));
 
 /**
  * App shell. MotionBudgetProvider + TrackingProvider sit ABOVE the router so the
@@ -66,10 +74,10 @@ export default function App() {
                 <Route path="/dev" element={<Dev />} />
                 <Route path="/demo" element={<Demo />} />
 
-                {/* Authenticated, onboarded pages share the app chrome. */}
+                {/* Authenticated, onboarded student pages share the app chrome. */}
                 <Route
                   element={
-                    <ProtectedRoute>
+                    <ProtectedRoute role="student">
                       <Layout />
                     </ProtectedRoute>
                   }
@@ -78,6 +86,24 @@ export default function App() {
                   <Route path="/courses/:slug" element={<Course />} />
                   <Route path="/insights" element={<Insights />} />
                   <Route path="/profile" element={<Profile />} />
+                </Route>
+
+                {/* Teacher dashboard. */}
+                <Route
+                  path="/teacher"
+                  element={
+                    <ProtectedRoute role="teacher" requireOnboarded={false}>
+                      <TeacherLayout />
+                    </ProtectedRoute>
+                  }
+                >
+                  <Route index element={<TeacherHome />} />
+                  <Route path="courses" element={<TeacherCourses />} />
+                  <Route path="courses/new" element={<TeacherCourseNew />} />
+                  <Route path="courses/:id" element={<TeacherCourseEditor />} />
+                  <Route path="courses/:id/analytics" element={<TeacherCourseAnalytics />} />
+                  <Route path="courses/:id/students" element={<TeacherStudents />} />
+                  <Route path="courses/:id/students/:studentId" element={<TeacherStudentDetail />} />
                 </Route>
 
                 {/* Full-bleed authenticated pages (no chrome). */}

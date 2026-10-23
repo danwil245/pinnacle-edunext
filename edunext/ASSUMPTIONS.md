@@ -326,3 +326,44 @@ shrinking ambition, or stripping animation.
   a lesson player — it embeds no YouTube video, so it works offline unchanged.
 - Privacy copy updated (consent + landing + README): camera frames never leave; the
   YouTube iframe makes its own requests; ads/overlays can affect measured engagement.
+
+## Teacher dashboard (Prompt B)
+
+- **Roles vocabulary** (`student` | `teacher`) is enforced in the app layer (auth
+  route + `requireRole`), not a SQLite CHECK, because `ADD COLUMN` can't attach a
+  CHECK to an existing table. Existing users default to `student`.
+- **Pre-existing courses default to `status='published'`** on migration so the
+  student catalogue keeps working without a data backfill step.
+- **Teacher-created courses start as `draft`.** Publish is an explicit action.
+- **Archive is one-way in the UI** (archived → gone for students, analytics kept).
+  Un-archive is out of scope for this prompt; a teacher re-publishes from draft or
+  recreates. Logged so it isn't mistaken for a bug.
+- **Cross-tenant requests return 404, not 403** (teacher A asking for teacher B's
+  course), so ownership is not leaked. Role/role-missing is 401/403.
+- **Demo teacher dev defaults:** `teacher@edunext.dev` / `teach-demo-1234`, refused
+  in production (must set `DEMO_TEACHER_EMAIL` + `DEMO_TEACHER_PASSWORD`).
+- **Lessons inherit course status** (no per-lesson draft flag) — the simplest model
+  the spec allows ("or inherit from the course").
+- **"Playwright" teacher→student flow** is implemented as a backend integration test
+  (`teacher-flow.test.js`) covering register-with-invite → create → publish → student
+  sees → session → analytics → archive → student no longer sees → permanent delete.
+  A browser-level Playwright runner is not configured in this repo (only
+  `playwright-core` is present and e2e specs are custom Node scripts), so the flow is
+  proven at the API level, which is deterministic and CI-friendly. Logged as a
+  deviation from the literal "Playwright" wording.
+
+### Teacher dashboard — D2–D5 follow-ups
+
+- **practical_ratio** defaults to 0.5 on course create and is teacher-editable; it is
+  not auto-recomputed from lessons (there is no per-lesson ratio to average). Logged
+  rather than inventing a per-lesson field.
+- **Demo analytics default to *included* (and badged)**, with a banner on any aggregate
+  that includes them and a "Hide demo data" toggle (sends `?demo=exclude`). This keeps
+  the demo dashboard populated while never showing an unlabelled demo number — the
+  banner is the aggregate-level badge.
+- **Screenshots** under `docs/teacher-dashboard/` are a documented manual capture step:
+  the teacher UI renders without a camera, but this headless environment can't drive a
+  real browser end-to-end to produce the PNGs. The a11y/responsive measures applied are
+  listed in that folder's README.
+- **`perf:check` and `test:deploy`** target a running/deployed backend (they fetch a
+  live URL), so they are run against the deploy, not in local unit CI.

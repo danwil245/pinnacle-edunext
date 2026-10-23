@@ -18,9 +18,9 @@ export function profileRoutes() {
   router.get('/me', async (req, res, next) => {
     try {
       const db = req.app.locals.db;
-      const user = await db.get('SELECT id, email, name, created_at FROM users WHERE id = ?', [req.userId]);
+      const user = await db.get('SELECT id, email, name, created_at, role FROM users WHERE id = ?', [req.userId]);
       if (!user) return next(notFound('User not found'));
-      return res.json({ user, profile: await loadProfile(db, req.userId) });
+      return res.json({ user: { ...user, role: user.role || 'student' }, profile: await loadProfile(db, req.userId) });
     } catch (err) {
       return next(err);
     }

@@ -119,6 +119,35 @@ export async function migrate(db) {
   await addColumnIfMissing(db, 'lessons', 'visual_notes', 'TEXT');
   await addColumnIfMissing(db, 'lessons', 'practical_exercise', 'TEXT');
 
+  // --- Teacher dashboard (Prompt B) -----------------------------------------
+  // Roles: existing users default to 'student'. A CHECK can't be added to an
+  // existing column via ALTER in SQLite, so the role vocabulary is enforced in
+  // the app layer (auth route + requireRole).
+  await addColumnIfMissing(db, 'users', 'role', "TEXT NOT NULL DEFAULT 'student'");
+  await addColumnIfMissing(db, 'users', 'is_demo', 'INTEGER NOT NULL DEFAULT 0');
+
+  // Course ownership + lifecycle. owner_id nullable (seeded demo courses are
+  // assigned to the demo teacher at seed time). Pre-existing courses default to
+  // 'published' so the student catalogue keeps working through the migration.
+  await addColumnIfMissing(db, 'courses', 'owner_id', 'INTEGER REFERENCES users(id)');
+  await addColumnIfMissing(db, 'courses', 'status', "TEXT NOT NULL DEFAULT 'published'");
+  await addColumnIfMissing(db, 'courses', 'created_at', 'TEXT');
+  await addColumnIfMissing(db, 'courses', 'updated_at', 'TEXT');
+
+  // Optional teacher-authored lesson description (notes/exercise already exist).
+  await addColumnIfMissing(db, 'lessons', 'description', 'TEXT');
+
+  // Synthetic demo-analytics sessions are flagged so they never mix into real
+  // numbers without a badge.
+  await addColumnIfMissing(db, 'sessions', 'is_demo', 'INTEGER NOT NULL DEFAULT 0');
+
+  // Indexes for the analytics queries.
+  await db.executeMultiple(`
+    CREATE INDEX IF NOT EXISTS idx_sessions_lesson ON sessions(lesson_id);
+    CREATE INDEX IF NOT EXISTS idx_sessions_user_lesson ON sessions(user_id, lesson_id);
+    CREATE INDEX IF NOT EXISTS idx_courses_owner ON courses(owner_id, status);
+  `);
+
   return db;
 }
 

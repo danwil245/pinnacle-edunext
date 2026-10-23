@@ -42,8 +42,13 @@ export function AuthProvider({ children }) {
     return res;
   }, [refresh]);
 
-  const register = useCallback(async (email, name, password) => {
-    const res = await api('/auth/register', { method: 'POST', auth: false, body: { email, name, password } });
+  const register = useCallback(async (email, name, password, { role, inviteCode } = {}) => {
+    const body = { email, name, password };
+    if (role === 'teacher') {
+      body.role = 'teacher';
+      body.inviteCode = inviteCode;
+    }
+    const res = await api('/auth/register', { method: 'POST', auth: false, body });
     setToken(res.token);
     await refresh();
     return res;

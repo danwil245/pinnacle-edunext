@@ -21,7 +21,7 @@ const BREAK_S = CONFIG.BREAK.LENGTH_S; // suggested break length (from CONFIG)
  * Playback is driven through a MediaController (`mediaRef.current`) so the same
  * curation actions work for a self-hosted <video> and a YouTube IFrame player.
  */
-export function useLessonSession({ lessonId, durationS, boundaries, emotionBaseline, mediaRef }) {
+export function useLessonSession({ lessonId, durationS, boundaries, emotionBaseline, mediaRef, preview = false }) {
   const tracking = useTracking();
 
   const [phase, setPhase] = useState('idle'); // idle|playing|paused|ended
@@ -81,14 +81,21 @@ export function useLessonSession({ lessonId, durationS, boundaries, emotionBasel
     // onboarding calibration (which uses 10×) so engagement/curation pace is real.
     if (tracking.source === 'mock') tracking.setTimeScale(1);
     if (!tracking.started) tracking.start();
-    const res = await api('/sessions', { method: 'POST', body: { lessonId } });
-    sessionIdRef.current = res.sessionId;
+    // Preview (teacher "View as student"): never create a session, so no ticks,
+    // curation, feedback or summary are persisted (all writes guard on the null
+    // sessionId ref). Playback and the HUD still work for a faithful preview.
+    let variant = 'visual';
+    if (!preview) {
+      const res = await api('/sessions', { method: 'POST', body: { lessonId } });
+      sessionIdRef.current = res.sessionId;
+      variant = res.variant;
+    }
     startClockRef.current = tracking.getNow();
-    setVariant(res.variant);
-    variantRef.current = res.variant;
+    setVariant(variant);
+    variantRef.current = variant;
     setPhase('playing');
     mediaRef.current?.play?.();
-  }, [lessonId, tracking, mediaRef]);
+  }, [lessonId, tracking, mediaRef, preview]);
 
   // Per-tick pipeline.
   useEffect(() => {

@@ -10,7 +10,13 @@ learner (people blink at different rates), reads live engagement during lessons,
 
 **Privacy invariant (non-negotiable):** camera frames never leave the browser. Only
 derived numbers/labels (a blink rate, a zone, an emotion label, a score) are sent to the
-server. A test asserts the tick upload schema contains no image/blob/base64 fields.
+server. A test asserts the tick upload schema — and every teacher analytics response —
+contains no image/blob/base64/raw-frame fields.
+
+**Teachers see engagement summaries.** If you join a teacher's course, your teacher can
+see your engagement summaries (numbers such as average engagement and attention zones).
+Your camera video is never sent anywhere. Deleting your data also removes it from teacher
+analytics.
 
 ## Quick start
 

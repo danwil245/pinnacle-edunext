@@ -4,6 +4,7 @@ import { openDb } from './db.js';
 import { migrate } from './migrate.js';
 import { COURSES } from './content/courses.js';
 import { videosFor } from './content/videos.js';
+import { seedDemoTeacher } from './seedTeacher.js';
 
 /**
  * Seed placeholder courses + lessons. Idempotent: upserts by course slug and by
@@ -11,16 +12,33 @@ import { videosFor } from './content/videos.js';
  *
  * @param {import('better-sqlite3').Database} db
  */
-export async function seed(db) {
+export async function seed(db, env = process.env) {
+  // Seed the demo teacher first so seeded courses can be assigned an owner.
+  // Best-effort: if demo-teacher env is missing in production, seeding content
+  // still works (courses stay unowned/published) — ownership is backfilled on a
+  // later boot once the env is set.
+  let ownerId = null;
+  try {
+    const t = await seedDemoTeacher(db, env);
+    ownerId = t.id;
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn('[seed] demo teacher not seeded:', err.message);
+  }
+
+  const now = new Date().toISOString();
   await db.transaction(async (tx) => {
     for (const course of COURSES) {
       await tx.run(
-        `INSERT INTO courses (slug, title, topic, description, level, practical_ratio)
-         VALUES (?, ?, ?, ?, ?, ?)
+        `INSERT INTO courses (slug, title, topic, description, level, practical_ratio, owner_id, status, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 'published', ?, ?)
          ON CONFLICT(slug) DO UPDATE SET
            title=excluded.title, topic=excluded.topic, description=excluded.description,
-           level=excluded.level, practical_ratio=excluded.practical_ratio`,
-        [course.slug, course.title, course.topic, course.description, course.level, course.practical_ratio]
+           level=excluded.level, practical_ratio=excluded.practical_ratio,
+           owner_id=COALESCE(courses.owner_id, excluded.owner_id),
+           status=COALESCE(courses.status, 'published'),
+           updated_at=excluded.updated_at`,
+        [course.slug, course.title, course.topic, course.description, course.level, course.practical_ratio, ownerId, now, now]
       );
       const c = await tx.get('SELECT id FROM courses WHERE slug = ?', [course.slug]);
       const courseId = Number(c.id);

@@ -3,6 +3,7 @@ import { createApp } from './app.js';
 import { openDb } from './db.js';
 import { migrate } from './migrate.js';
 import { seed } from './seed.js';
+import { seedDemoTeacher } from './seedTeacher.js';
 
 const log = (...a) => console.log('[edunext]', ...a); // eslint-disable-line no-console
 
@@ -29,6 +30,17 @@ const db = openDb({ path: cfg.databasePath });
 
 try {
   await withRetry(() => migrate(db)); // idempotent
+  // Ensure the demo teacher exists on every boot (idempotent; never overwrites a
+  // password). Independent of content seeding so an already-seeded DB still gets
+  // the teacher once DEMO_TEACHER_* env is set.
+  try {
+    const t = await seedDemoTeacher(db);
+    // Backfill ownership of still-unowned seeded courses onto the demo teacher.
+    await db.run('UPDATE courses SET owner_id = ? WHERE owner_id IS NULL', [t.id]);
+    log(`demo teacher ${t.created ? 'created' : 'present'} (${t.email})`);
+  } catch (err) {
+    log('demo teacher not seeded:', err.message);
+  }
   // Auto-seed so a fresh/wiped DB works with no manual step. Also re-run when an
   // existing DB is missing lesson content added by a later migration (e.g. the
   // video-id columns) so those rows get backfilled on deploy. seed() is an

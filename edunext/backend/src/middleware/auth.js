@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { unauthorized, ApiError } from './error.js';
+import { unauthorized, forbidden, ApiError } from './error.js';
 
 const DEV_SECRET = 'dev-only-insecure-secret-change-me';
 
@@ -8,14 +8,15 @@ export function jwtSecret() {
   return process.env.JWT_SECRET || DEV_SECRET;
 }
 
-/** Sign a 7-day token for a user id. */
-export function signToken(userId) {
-  return jwt.sign({ sub: String(userId) }, jwtSecret(), { expiresIn: '7d' });
+/** Sign a 7-day token for a user id, carrying the (signed, client-unforgeable) role. */
+export function signToken(userId, role = 'student') {
+  return jwt.sign({ sub: String(userId), role }, jwtSecret(), { expiresIn: '7d' });
 }
 
 /**
  * Auth guard. Requires `Authorization: Bearer <token>`; on success sets
- * `req.userId` (a number). Any failure -> 401.
+ * `req.userId` (a number) and `req.userRole` (string, defaults 'student' for
+ * tokens minted before roles existed). Any failure -> 401.
  */
 export function authRequired(req, _res, next) {
   const header = req.headers.authorization || '';
@@ -24,11 +25,24 @@ export function authRequired(req, _res, next) {
   try {
     const payload = jwt.verify(token, jwtSecret());
     req.userId = Number(payload.sub);
+    req.userRole = payload.role === 'teacher' ? 'teacher' : 'student';
     if (!Number.isFinite(req.userId)) return next(unauthorized());
     return next();
   } catch {
     return next(unauthorized('Invalid or expired token'));
   }
+}
+
+/**
+ * Role guard. Use after `authRequired`. Rejects a mismatched role with 403.
+ * The role comes from the signed JWT claim, so a client cannot elevate itself.
+ * @param {'teacher'|'student'} role
+ */
+export function requireRole(role) {
+  return (req, _res, next) => {
+    if (req.userRole !== role) return next(forbidden('This area is for teachers only'));
+    return next();
+  };
 }
 
 /**

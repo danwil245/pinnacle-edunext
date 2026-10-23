@@ -41,6 +41,9 @@ export default function Lesson() {
   // Open with ?forcebreak=1. Self-contained local state; does not touch a session.
   const [searchParams] = useSearchParams();
   const forceBreak = searchParams.get('forcebreak') === '1';
+  // Teacher "View as student" preview: plays the lesson without creating a
+  // session or recording any tracking data.
+  const preview = searchParams.get('preview') === '1';
   const [previewStage, setPreviewStage] = useState('prompt'); // prompt | break | none
   const [previewLeft, setPreviewLeft] = useState(CONFIG.BREAK.LENGTH_S);
   useEffect(() => {
@@ -92,6 +95,7 @@ export default function Lesson() {
     boundaries,
     emotionBaseline,
     mediaRef,
+    preview,
   });
 
   useEffect(() => {
@@ -100,6 +104,11 @@ export default function Lesson() {
   }, [tracking]);
 
   const finish = async (completed) => {
+    // Preview mode records nothing — just leave.
+    if (preview) {
+      navigate(-1);
+      return;
+    }
     // Just end the session; navigation happens in the effect below once the
     // summary state is actually populated. (Navigating here used the stale
     // closure value of s.summary — still null — so the Summary page fell back to
@@ -200,6 +209,11 @@ export default function Lesson() {
 
   return (
     <div ref={chromeRef} className="mx-auto max-w-4xl p-4 sm:p-6">
+      {preview && (
+        <div className="mb-4 rounded-xl border border-fuchsia-400/30 bg-fuchsia-400/10 px-3 py-2 text-sm text-fuchsia-200" role="status">
+          Preview mode — this is how the lesson looks to a student. Nothing is recorded.
+        </div>
+      )}
       <div className="mb-4 flex items-center justify-between gap-3">
         <h1 className="text-xl">{lesson.title}</h1>
         <div className="flex items-center gap-2">
@@ -216,7 +230,7 @@ export default function Lesson() {
           >
             {focusMode ? '● Focus mode on' : '○ Focus mode'}
           </button>
-          <button className="btn-ghost" onClick={() => finish(true)}>Complete lesson</button>
+          <button className="btn-ghost" onClick={() => finish(true)}>{preview ? 'Exit preview' : 'Complete lesson'}</button>
         </div>
       </div>
 

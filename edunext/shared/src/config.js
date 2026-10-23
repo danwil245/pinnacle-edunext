@@ -79,6 +79,15 @@ export const CONFIG = Object.freeze({
     W_HISTORY: 0.15,
     IN_PROGRESS_BOOST: 0.15,
   }),
+  // Teacher analytics (Prompt B). MIN_VALID_SESSIONS gates "not enough data yet".
+  ANALYTICS: Object.freeze({
+    MIN_VALID_SESSIONS: 3, // below this a lesson shows "not enough data yet"
+    TIMELINE_BUCKETS: 10, // class engagement timeline resolution (% of lesson)
+    TREND_WINDOW: 5, // sessions considered for a student's up/down/flat trend
+    TREND_MARGIN: 5, // score delta (0..100) needed to call a trend up/down
+    LOW_ENGAGEMENT_SCORE: 45, // a session below this is "low"
+    LOW_ENGAGEMENT_SESSIONS: 3, // this many recent low sessions => flag for check-in
+  }),
 });
 
 export default CONFIG;

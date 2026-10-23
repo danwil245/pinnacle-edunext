@@ -217,6 +217,10 @@ function ConsentStep({ mode, tracking, chooseMode, onNext }) {
         Lessons play videos embedded from YouTube, which — like any embedded video — sends requests to
         YouTube when you watch; your camera frames are never part of that.
       </p>
+      <p className="rounded-xl border border-white/10 bg-white/[0.03] p-3 text-sm text-slate-300">
+        If you join a teacher's course, <b>your teacher can see your engagement summaries</b> — numbers such
+        as average engagement and attention zones. Your camera video is never sent anywhere.
+      </p>
       <div className="grid gap-3 sm:grid-cols-3">
         <ModeButton active={mode === 'camera'} onClick={() => chooseMode('camera')} title="Enable camera"
           desc="Best accuracy. We measure on-device." />
