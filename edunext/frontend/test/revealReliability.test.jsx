@@ -72,6 +72,20 @@ describe('reveal reliability', () => {
     cleanup();
   });
 
+  it('immediate mode reveals all cards on mount (no scroll trigger)', async () => {
+    const { container } = render(
+      <Stagger immediate>
+        <div data-testid="card">A</div>
+        <div data-testid="card">B</div>
+      </Stagger>
+    );
+    await waitFor(
+      () => [...container.querySelectorAll('[data-testid="card"]')].forEach((c) => expect(notHidden(c)).toBe(true)),
+      { timeout: 4000 }
+    );
+    cleanup();
+  });
+
   it('a Reveal section ends visible', async () => {
     const { container } = render(<Reveal><p data-testid="sec">hello</p></Reveal>);
     await waitFor(() => {

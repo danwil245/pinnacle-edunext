@@ -73,14 +73,14 @@ function SummaryBody({ summary, series, curation }) {
         <Link to="/home" className="btn-ghost">Back home</Link>
       </header>
 
-      <Stagger className="grid gap-4 sm:grid-cols-3">
+      <Stagger className="grid gap-4 sm:grid-cols-3" immediate>
         <Stat label="Average engagement" value={summary.avgScore == null ? '—' : Math.round(summary.avgScore)} suffix="/100" />
         <Stat label="Valid time" value={summary.validSeconds ?? 0} suffix="s" />
         <Stat label="Variant" value={summary.variant} capitalize />
       </Stagger>
 
       {series.length > 0 && (
-        <Reveal as="section" className="card">
+        <Reveal as="section" className="card" immediate>
           <h2 className="mb-3">Engagement over time</h2>
           <ResponsiveContainer width="100%" height={220}>
             <LineChart data={series} margin={{ top: 8, right: 12, bottom: 4, left: -16 }}>
@@ -104,7 +104,7 @@ function SummaryBody({ summary, series, curation }) {
       </div>
 
       {curation.length > 0 && (
-        <Reveal as="section" className="card">
+        <Reveal as="section" className="card" immediate>
           <h2 className="mb-3">What adapted, and why</h2>
           <ul className="space-y-2 text-sm">
             {curation.map((c, i) => (
@@ -119,7 +119,7 @@ function SummaryBody({ summary, series, curation }) {
       )}
 
       {summary.style && (
-        <Reveal as="section" className="card">
+        <Reveal as="section" className="card" immediate>
           <h2 className="mb-1">What we learned about your style</h2>
           <p className="text-sm text-slate-300">
             Current estimate: <b className="capitalize">{summary.style.style}</b>{' '}

@@ -37,7 +37,7 @@ export default function Insights() {
     <div className="space-y-6">
       <h1>Insights</h1>
 
-      <Reveal as="section" className="card">
+      <Reveal as="section" className="card" immediate>
         <h2 className="mb-3">Average engagement per session</h2>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={bySession} margin={{ top: 8, right: 12, bottom: 4, left: -16 }}>
@@ -56,7 +56,7 @@ export default function Insights() {
         </p>
       </Reveal>
 
-      <Reveal as="section" className="card">
+      <Reveal as="section" className="card" immediate>
         <h2 className="mb-3">Engagement by variant</h2>
         <div className="grid grid-cols-2 gap-4">
           {['visual', 'practical'].map((v) => {

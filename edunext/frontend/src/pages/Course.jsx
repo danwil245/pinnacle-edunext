@@ -34,7 +34,7 @@ export default function Course() {
         <span className="text-slate-300">{course.title}</span>
       </nav>
 
-      <Reveal as="header" className="space-y-2">
+      <Reveal as="header" className="space-y-2" immediate>
         <span className="pill">{TOPIC_LABELS[course.topic] || course.topic}</span>
         <h1>{course.title}</h1>
         <p className="text-slate-300">{course.description}</p>
@@ -43,7 +43,7 @@ export default function Course() {
         </p>
       </Reveal>
 
-      <Stagger as="ol" className="space-y-3">
+      <Stagger as="ol" className="space-y-3" immediate>
         {lessons.map((l) => (
           <li key={l.id} className="card flex items-center justify-between gap-4 transition hover:border-sky-400/30">
             <div className="flex items-center gap-3">

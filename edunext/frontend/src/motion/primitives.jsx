@@ -65,7 +65,7 @@ export function isElementOnScreen(el) {
  * timeout that forces the final visible state if the tween hasn't completed and
  * the group is on-screen. Returns a cleanup fn (kills tween, trigger, timeout).
  */
-function armReveal({ el, targets, y, stagger = 0, delay = 0, once, reduced }) {
+function armReveal({ el, targets, y, stagger = 0, delay = 0, once, reduced, immediate = false }) {
   const list = targets;
   const count = list?.length ?? 1;
   if (reduced || !el || !count) {
@@ -82,7 +82,11 @@ function armReveal({ el, targets, y, stagger = 0, delay = 0, once, reduced }) {
       delay,
       ease: MOTION.ease.out,
       stagger,
-      scrollTrigger: { trigger: el, start: MOTION.reveal.start, once },
+      // `immediate` content (primary lists that load async — Home, Course,
+      // Insights) animates on mount with NO ScrollTrigger, so a stale/failed
+      // trigger can never leave it stuck hidden. Scroll-reveal (Landing) keeps
+      // the trigger.
+      ...(immediate ? {} : { scrollTrigger: { trigger: el, start: MOTION.reveal.start, once } }),
       onComplete: () => {
         completed = true;
         gsap.set(list, { clearProps: 'opacity,transform' });
@@ -91,7 +95,7 @@ function armReveal({ el, targets, y, stagger = 0, delay = 0, once, reduced }) {
     // The list may have mounted after the last route-change ScrollTrigger.refresh
     // (it loaded from the API). Recompute trigger positions now that the real
     // content is laid out, otherwise an in-view reveal can fail to fire.
-    scheduleScrollTriggerRefresh();
+    if (!immediate) scheduleScrollTriggerRefresh();
   } catch {
     forceRevealed(list);
     return () => {};
@@ -108,11 +112,11 @@ function armReveal({ el, targets, y, stagger = 0, delay = 0, once, reduced }) {
 }
 
 // --- Reveal: fade + rise into view on scroll ---------------------------------
-export function Reveal({ children, as: Tag = 'div', y = MOTION.reveal.y, delay = 0, className = '', once = true }) {
+export function Reveal({ children, as: Tag = 'div', y = MOTION.reveal.y, delay = 0, className = '', once = true, immediate = false }) {
   const ref = useRef(null);
   const reduced = useReducedMotion();
   useGSAP(
-    () => armReveal({ el: ref.current, targets: ref.current ? [ref.current] : [], y, delay, once, reduced }),
+    () => armReveal({ el: ref.current, targets: ref.current ? [ref.current] : [], y, delay, once, reduced, immediate }),
     { dependencies: [reduced], scope: ref }
   );
   return (
@@ -123,7 +127,7 @@ export function Reveal({ children, as: Tag = 'div', y = MOTION.reveal.y, delay =
 }
 
 // --- Stagger: reveal direct children in sequence -----------------------------
-export function Stagger({ children, as: Tag = 'div', stagger = MOTION.stagger.base, y = MOTION.reveal.y, className = '', once = true }) {
+export function Stagger({ children, as: Tag = 'div', stagger = MOTION.stagger.base, y = MOTION.reveal.y, className = '', once = true, immediate = false }) {
   const ref = useRef(null);
   const reduced = useReducedMotion();
   // Re-run (and re-reveal) whenever the number of children changes — e.g. a
@@ -133,7 +137,7 @@ export function Stagger({ children, as: Tag = 'div', stagger = MOTION.stagger.ba
     () => {
       const el = ref.current;
       const kids = el ? Array.from(el.children) : [];
-      return armReveal({ el, targets: kids, y, stagger, once, reduced });
+      return armReveal({ el, targets: kids, y, stagger, once, reduced, immediate });
     },
     { dependencies: [reduced, count], scope: ref }
   );

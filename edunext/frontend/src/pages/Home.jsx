@@ -29,7 +29,7 @@ export default function Home() {
           <h1>Recommended for you</h1>
           <ProfileChip profile={profile} />
         </div>
-        <Stagger className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <Stagger immediate className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {courses.map((c) => (
             <CourseCard key={c.slug} course={c} />
           ))}
@@ -38,8 +38,8 @@ export default function Home() {
 
       {inProgress.length > 0 && (
         <section>
-          <Reveal as="h2" className="mb-3">Continue learning</Reveal>
-          <Stagger className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <Reveal as="h2" className="mb-3" immediate>Continue learning</Reveal>
+          <Stagger immediate className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {inProgress.map((c) => (
               <CourseCard key={c.slug} course={c} compact />
             ))}
