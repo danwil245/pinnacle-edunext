@@ -16,6 +16,7 @@
     "test": "npm run test -w @edunext/shared && npm run test -w @edunext/backend && npm run test -w @edunext/frontend",
     "migrate": "npm run migrate -w @edunext/backend",
     "seed": "npm run seed -w @edunext/backend",
+    "seed:demo-analytics": "npm run seed:demo-analytics -w @edunext/backend",
     "e2e": "npm run e2e -w @edunext/backend",
     "perf:check": "node scripts/perf/check.mjs",
     "predeploy": "node scripts/predeploy-check.mjs",

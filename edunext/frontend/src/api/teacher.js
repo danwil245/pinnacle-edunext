@@ -24,18 +24,23 @@ export const teacherApi = {
     api(`/teacher/courses/${courseId}/lessons/reorder`, { method: 'POST', body: { order } }),
   checkVideo: (videoId) => api(`/youtube/check?videoId=${encodeURIComponent(videoId)}`),
 
-  // Analytics
-  overview: () => api('/teacher/analytics/overview'),
-  courseAnalytics: (id) => api(`/teacher/analytics/courses/${id}`),
-  courseStudents: (id) => api(`/teacher/analytics/courses/${id}/students`),
-  studentDetail: (id, studentId) => api(`/teacher/analytics/courses/${id}/students/${studentId}`),
+  // Analytics. Pass { demo: 'exclude' } to hide synthetic demo rows.
+  overview: (opts) => api(`/teacher/analytics/overview${demoQ(opts)}`),
+  courseAnalytics: (id, opts) => api(`/teacher/analytics/courses/${id}${demoQ(opts)}`),
+  courseStudents: (id, opts) => api(`/teacher/analytics/courses/${id}/students${demoQ(opts)}`),
+  studentDetail: (id, studentId, opts) => api(`/teacher/analytics/courses/${id}/students/${studentId}${demoQ(opts)}`),
   /** CSV export URL (opened via an authenticated fetch -> blob download). */
-  exportCsvUrl: (id) => `${API_BASE}/api/teacher/analytics/courses/${id}/export.csv`,
+  exportCsvUrl: (id, opts) => `${API_BASE}/api/teacher/analytics/courses/${id}/export.csv${demoQ(opts)}`,
 };
 
+/** Build the ?demo=exclude query fragment from an options object. */
+function demoQ(opts) {
+  return opts?.demo === 'exclude' ? '?demo=exclude' : '';
+}
+
 /** Download the per-student CSV with the bearer token and trigger a save. */
-export async function downloadCourseCsv(courseId, filename) {
-  const res = await fetch(teacherApi.exportCsvUrl(courseId), {
+export async function downloadCourseCsv(courseId, filename, opts) {
+  const res = await fetch(teacherApi.exportCsvUrl(courseId, opts), {
     headers: { Authorization: `Bearer ${getToken()}` },
   });
   if (!res.ok) throw new Error('Could not export CSV');

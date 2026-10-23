@@ -9,6 +9,7 @@
     "start": "node src/index.js",
     "migrate": "node src/migrate.js",
     "seed": "node src/seed.js",
+    "seed:demo-analytics": "node src/seedDemoAnalytics.js",
     "e2e": "node scripts/e2e-smoke.mjs",
     "test": "vitest run"
   },
