@@ -11,22 +11,108 @@ import { useReducedMotion } from './useReducedMotion.js';
  * and is StrictMode double-mount safe.
  */
 
+// --- Reveal safety helpers ---------------------------------------------------
+// Scroll-reveal entrances (Reveal/Stagger) animate `from { opacity: 0 }`, which
+// GSAP writes to the element immediately. If the ScrollTrigger that is supposed
+// to play the tween never fires — e.g. its positions were computed against a
+// stale layout because the list was rendered *after* an async fetch — the tween
+// can be left sitting at opacity 0 and the content stays invisible. These helpers
+// guarantee a final visible state no matter what.
+
+const REVEAL_SAFETY_BUFFER_MS = 800;
+
+// Coalesce ScrollTrigger refreshes: when several reveals mount in the same frame
+// (e.g. a page full of sections), recompute trigger positions once, after layout.
+let refreshQueued = false;
+function scheduleScrollTriggerRefresh() {
+  if (refreshQueued) return;
+  refreshQueued = true;
+  requestAnimationFrame(() => {
+    refreshQueued = false;
+    try {
+      ScrollTrigger.refresh();
+    } catch {
+      /* ignore */
+    }
+  });
+}
+
+/** Final-state guarantee: make targets fully visible and drop inline tween props. */
+export function forceRevealed(targets) {
+  try {
+    gsap.set(targets, { opacity: 1, y: 0, clearProps: 'opacity,transform' });
+  } catch {
+    /* ignore — targets may already be gone */
+  }
+}
+
+/**
+ * Is the element within the viewport (so a reveal *should* already have played)?
+ * A degenerate/zero rect (e.g. jsdom, or an element not yet laid out) is treated
+ * as on-screen, so geometry we can't read never leaves content hidden.
+ */
+export function isElementOnScreen(el) {
+  if (!el || typeof el.getBoundingClientRect !== 'function') return true;
+  const r = el.getBoundingClientRect();
+  const vh = window.innerHeight || document.documentElement?.clientHeight || 0;
+  if (r.width === 0 && r.height === 0 && r.top === 0 && r.bottom === 0) return true;
+  return r.top < vh && r.bottom > 0;
+}
+
+/**
+ * Create a guarded reveal tween. Refreshes ScrollTrigger (so async-mounted lists
+ * get correct positions), clears inline props on completion, and arms a safety
+ * timeout that forces the final visible state if the tween hasn't completed and
+ * the group is on-screen. Returns a cleanup fn (kills tween, trigger, timeout).
+ */
+function armReveal({ el, targets, y, stagger = 0, delay = 0, once, reduced }) {
+  const list = targets;
+  const count = list?.length ?? 1;
+  if (reduced || !el || !count) {
+    forceRevealed(list);
+    return () => {};
+  }
+  let completed = false;
+  let tween;
+  try {
+    tween = gsap.from(list, {
+      opacity: 0,
+      y,
+      duration: MOTION.dur.base,
+      delay,
+      ease: MOTION.ease.out,
+      stagger,
+      scrollTrigger: { trigger: el, start: MOTION.reveal.start, once },
+      onComplete: () => {
+        completed = true;
+        gsap.set(list, { clearProps: 'opacity,transform' });
+      },
+    });
+    // The list may have mounted after the last route-change ScrollTrigger.refresh
+    // (it loaded from the API). Recompute trigger positions now that the real
+    // content is laid out, otherwise an in-view reveal can fail to fire.
+    scheduleScrollTriggerRefresh();
+  } catch {
+    forceRevealed(list);
+    return () => {};
+  }
+  const lifeMs = (MOTION.dur.base + delay + stagger * Math.max(0, count - 1)) * 1000;
+  const safety = setTimeout(() => {
+    if (!completed && isElementOnScreen(el)) forceRevealed(list);
+  }, lifeMs + REVEAL_SAFETY_BUFFER_MS);
+  return () => {
+    clearTimeout(safety);
+    tween?.scrollTrigger?.kill();
+    tween?.kill();
+  };
+}
+
 // --- Reveal: fade + rise into view on scroll ---------------------------------
 export function Reveal({ children, as: Tag = 'div', y = MOTION.reveal.y, delay = 0, className = '', once = true }) {
   const ref = useRef(null);
   const reduced = useReducedMotion();
   useGSAP(
-    () => {
-      if (reduced || !ref.current) return;
-      gsap.from(ref.current, {
-        opacity: 0,
-        y,
-        duration: MOTION.dur.base,
-        delay,
-        ease: MOTION.ease.out,
-        scrollTrigger: { trigger: ref.current, start: MOTION.reveal.start, once },
-      });
-    },
+    () => armReveal({ el: ref.current, targets: ref.current ? [ref.current] : [], y, delay, once, reduced }),
     { dependencies: [reduced], scope: ref }
   );
   return (
@@ -40,21 +126,16 @@ export function Reveal({ children, as: Tag = 'div', y = MOTION.reveal.y, delay =
 export function Stagger({ children, as: Tag = 'div', stagger = MOTION.stagger.base, y = MOTION.reveal.y, className = '', once = true }) {
   const ref = useRef(null);
   const reduced = useReducedMotion();
+  // Re-run (and re-reveal) whenever the number of children changes — e.g. a
+  // course list that grows after the API responds, or a newly added course.
+  const count = Array.isArray(children) ? children.filter(Boolean).length : children ? 1 : 0;
   useGSAP(
     () => {
-      if (reduced || !ref.current) return;
-      const kids = ref.current.children;
-      if (!kids.length) return;
-      gsap.from(kids, {
-        opacity: 0,
-        y,
-        duration: MOTION.dur.base,
-        ease: MOTION.ease.out,
-        stagger,
-        scrollTrigger: { trigger: ref.current, start: MOTION.reveal.start, once },
-      });
+      const el = ref.current;
+      const kids = el ? Array.from(el.children) : [];
+      return armReveal({ el, targets: kids, y, stagger, once, reduced });
     },
-    { dependencies: [reduced], scope: ref }
+    { dependencies: [reduced, count], scope: ref }
   );
   return (
     <Tag ref={ref} className={className}>

@@ -17,6 +17,12 @@ if (typeof window !== 'undefined' && !window.matchMedia) {
   });
 }
 
+// jsdom doesn't implement window.scrollTo; ScrollTrigger.refresh() calls it.
+// Inert stub so reveal animations exercise their real refresh path in tests.
+if (typeof window !== 'undefined') {
+  window.scrollTo = () => {};
+}
+
 // jsdom has no ResizeObserver; Lenis constructs one. Inert stub for tests.
 if (typeof globalThis.ResizeObserver === 'undefined') {
   globalThis.ResizeObserver = class {
