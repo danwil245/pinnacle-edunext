@@ -2,7 +2,7 @@ import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
-import { authRequired } from './middleware/auth.js';
+import { authRequired, requireRole } from './middleware/auth.js';
 import { errorHandler, notFound } from './middleware/error.js';
 import { normalizeOrigin } from './config.js';
 import { authRoutes } from './routes/auth.js';
@@ -11,6 +11,8 @@ import { courseRoutes } from './routes/courses.js';
 import { sessionRoutes } from './routes/sessions.js';
 import { insightsRoutes } from './routes/insights.js';
 import { youtubeRoutes } from './routes/youtube.js';
+import { teacherContentRoutes } from './routes/teacher/content.js';
+import { teacherAnalyticsRoutes } from './routes/teacher/analytics.js';
 
 /**
  * App factory. Takes an open better-sqlite3 handle so tests can pass an
@@ -91,6 +93,11 @@ export function createApp(db, opts = {}) {
   app.use('/api', sessionRoutes());
   app.use('/api', insightsRoutes());
   app.use('/api', youtubeRoutes());
+
+  // Teacher dashboard: role-gated. requireRole runs after authRequired (mounted
+  // above), so students get 403 and unauthenticated users 401.
+  app.use('/api/teacher', requireRole('teacher'), teacherContentRoutes());
+  app.use('/api/teacher', requireRole('teacher'), teacherAnalyticsRoutes());
 
   // Unknown API route -> 404 in the standard error shape.
   app.use('/api', (_req, _res, next) => next(notFound('Route not found')));

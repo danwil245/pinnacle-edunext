@@ -114,6 +114,49 @@ export const sessionCreateSchema = z.object({
   lessonId: z.number().int().positive(),
 });
 
+// --- Teacher dashboard (Prompt B) -------------------------------------------
+
+/** Course create: only title is required; the rest have server defaults. */
+export const courseCreateSchema = z.object({
+  title: z.string().min(1).max(120),
+  description: z.string().max(2000).optional(),
+  topic: z.string().min(1).max(64).optional(),
+  level: z.string().min(1).max(40).optional(),
+  practicalRatio: z.number().min(0).max(1).optional(),
+});
+
+/** Course update: any subset of the editable fields. */
+export const courseUpdateSchema = z
+  .object({
+    title: z.string().min(1).max(120),
+    description: z.string().max(2000),
+    topic: z.string().min(1).max(64),
+    level: z.string().min(1).max(40),
+    practicalRatio: z.number().min(0).max(1),
+  })
+  .partial();
+
+/**
+ * Lesson create/edit. YouTube URLs (or bare ids) are parsed + oEmbed-verified
+ * server-side; at least one variant URL is required (the route enforces that so
+ * it can return a clear message). No file uploads — text + links only.
+ */
+export const lessonWriteSchema = z.object({
+  title: z.string().min(1).max(160),
+  description: z.string().max(2000).optional(),
+  visualUrl: z.string().max(400).optional(),
+  practicalUrl: z.string().max(400).optional(),
+  visualStartSeconds: z.number().int().nonnegative().max(86400).optional(),
+  practicalStartSeconds: z.number().int().nonnegative().max(86400).optional(),
+  visualNotes: z.string().max(4000).optional(),
+  practicalExercise: z.string().max(4000).optional(),
+  durationSeconds: z.number().int().nonnegative().max(86400).optional(),
+});
+
+export const lessonReorderSchema = z.object({
+  order: z.array(z.number().int().positive()).min(1).max(200),
+});
+
 export const endSessionSchema = z.object({
   completed: z.boolean(),
 });

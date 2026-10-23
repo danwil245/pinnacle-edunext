@@ -29,7 +29,8 @@ export function courseRoutes() {
     try {
       const db = req.app.locals.db;
       const profile = await loadProfile(db, req.userId);
-      const rows = await db.all('SELECT * FROM courses');
+      // Students only ever see published courses (draft/archived are hidden).
+      const rows = await db.all("SELECT * FROM courses WHERE status = 'published'");
 
       const sessionsByTopic = Object.fromEntries(
         (await db.all(
@@ -77,7 +78,8 @@ export function courseRoutes() {
   router.get('/courses/:slug', async (req, res, next) => {
     try {
       const db = req.app.locals.db;
-      const course = await db.get('SELECT * FROM courses WHERE slug = ?', [req.params.slug]);
+      // Only published courses are visible in the student catalogue.
+      const course = await db.get("SELECT * FROM courses WHERE slug = ? AND status = 'published'", [req.params.slug]);
       if (!course) return next(notFound('Course not found'));
 
       const lessons = await db.all(

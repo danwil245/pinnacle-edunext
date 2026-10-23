@@ -22,6 +22,23 @@ export async function registerUser(app, over = {}) {
 /** Add a Bearer header to a supertest request. */
 export const auth = (token) => (req) => req.set('Authorization', `Bearer ${token}`);
 
+/** The invite code tests set on the environment; see makeTeacherApp / setInvite. */
+export const TEST_INVITE = 'test-invite-code-123';
+
+/** Register a teacher (requires process.env.TEACHER_INVITE_CODE === TEST_INVITE). */
+export async function registerTeacher(app, over = {}) {
+  const body = {
+    email: `t${Math.random().toString(36).slice(2)}@ex.com`,
+    name: 'Teacher',
+    password: 'password1',
+    role: 'teacher',
+    inviteCode: TEST_INVITE,
+    ...over,
+  };
+  const res = await request(app).post('/api/auth/register').send(body);
+  return { token: res.body.token, user: res.body.user, status: res.status };
+}
+
 /** Grab the first lesson id of the first seeded course. */
 export async function firstLessonId(app, token) {
   const courses = await request(app).get('/api/courses').set('Authorization', `Bearer ${token}`);
