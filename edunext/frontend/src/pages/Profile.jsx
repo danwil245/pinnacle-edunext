@@ -151,7 +151,19 @@ export default function Profile() {
         </div>
         <p className="text-xs text-slate-500">
           Recalibrate clears your calibration and restarts onboarding. Delete removes your account and every
-          row of your data.
+          row of your data — including the engagement summaries any teacher can see.
+        </p>
+      </Reveal>
+
+      <Reveal as="section" className="card space-y-2">
+        <h2>Privacy</h2>
+        <p className="text-sm text-slate-300">
+          Your camera video is <b>never sent anywhere</b> — attention is measured in your browser and only
+          derived numbers (a blink rate, a zone, an emotion label, a score) are saved.
+        </p>
+        <p className="text-sm text-slate-300">
+          If you join a teacher's course, <b>your teacher can see your engagement summaries</b> (numbers such
+          as average engagement and attention zones). They never see your video or any raw frames.
         </p>
       </Reveal>
     </div>
