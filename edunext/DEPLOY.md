@@ -37,6 +37,32 @@ Vercel origin via `CORS_ORIGINS`.
 | `JWT_SECRET` | generate a strong one (Blueprint sets `generateValue: true`) |
 | `CORS_ORIGINS` | your Vercel URL, e.g. `https://edunext.vercel.app` (no trailing slash) |
 | `DATABASE_PATH` | `./data/edunext.db` (ephemeral) or `/var/data/edunext.db` with a disk |
+| `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` | persistent DB (see "Persistent database") |
+| `TEACHER_INVITE_CODE` | **required in prod** — secret phrase to register a teacher |
+| `DEMO_TEACHER_EMAIL` | **required in prod** — seeded demo teacher's email |
+| `DEMO_TEACHER_PASSWORD` | **required in prod** — seeded demo teacher's password |
+| `ALLOW_DEMO_ANALYTICS` | optional — set to `1` only to allow the demo-analytics seed in prod |
+
+### Teacher dashboard env vars (Prompt B)
+
+All three teacher secrets are **required in production** (the server refuses to boot
+without them) and must be set as secrets in the dashboard (`sync: false` in
+`render.yaml`), never committed:
+
+- `TEACHER_INVITE_CODE` — anyone registering with "I'm a teacher" must enter this exact
+  code (compared in constant time). Pick a strong phrase (≥ 8 chars).
+- `DEMO_TEACHER_EMAIL` / `DEMO_TEACHER_PASSWORD` — the one demo teacher seeded at boot.
+  The seed is idempotent and never overwrites an existing password. Dev defaults
+  (`teacher@edunext.dev` / `teach-demo-1234`) are **refused in production**.
+- `ALLOW_DEMO_ANALYTICS` (optional) — leave unset. Set to `1` only if you deliberately
+  want `npm run seed:demo-analytics` to populate synthetic demo students in production;
+  every demo row is flagged and badged in the UI.
+
+To load demo analytics (local or, with the flag, prod):
+
+```bash
+npm run seed:demo-analytics   # ~8 flagged demo students with synthetic sessions
+```
 
 ## Step-by-step
 

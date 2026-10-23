@@ -351,3 +351,19 @@ shrinking ambition, or stripping animation.
   `playwright-core` is present and e2e specs are custom Node scripts), so the flow is
   proven at the API level, which is deterministic and CI-friendly. Logged as a
   deviation from the literal "Playwright" wording.
+
+### Teacher dashboard — D2–D5 follow-ups
+
+- **practical_ratio** defaults to 0.5 on course create and is teacher-editable; it is
+  not auto-recomputed from lessons (there is no per-lesson ratio to average). Logged
+  rather than inventing a per-lesson field.
+- **Demo analytics default to *included* (and badged)**, with a banner on any aggregate
+  that includes them and a "Hide demo data" toggle (sends `?demo=exclude`). This keeps
+  the demo dashboard populated while never showing an unlabelled demo number — the
+  banner is the aggregate-level badge.
+- **Screenshots** under `docs/teacher-dashboard/` are a documented manual capture step:
+  the teacher UI renders without a camera, but this headless environment can't drive a
+  real browser end-to-end to produce the PNGs. The a11y/responsive measures applied are
+  listed in that folder's README.
+- **`perf:check` and `test:deploy`** target a running/deployed backend (they fetch a
+  live URL), so they are run against the deploy, not in local unit CI.

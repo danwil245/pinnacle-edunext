@@ -32,6 +32,17 @@ services:
         sync: false # libsql://<your-db>.turso.io
       - key: TURSO_AUTH_TOKEN
         sync: false # the auth token you created for the database
+      # --- Teacher dashboard (Prompt B) — set these as secrets in the dashboard ---
+      - key: TEACHER_INVITE_CODE
+        sync: false # a secret phrase; required to register a teacher account
+      - key: DEMO_TEACHER_EMAIL
+        sync: false # email for the seeded demo teacher
+      - key: DEMO_TEACHER_PASSWORD
+        sync: false # password for the seeded demo teacher (never committed)
+      # Optional: allow the synthetic demo-analytics seed to run in production.
+      # Leave unset normally; set to "1" only when you deliberately want demo data.
+      # - key: ALLOW_DEMO_ANALYTICS
+      #   sync: false
       - key: LOG_LEVEL
         value: info
     # DATABASE_PATH is only used if TURSO_DATABASE_URL is unset (local file,
