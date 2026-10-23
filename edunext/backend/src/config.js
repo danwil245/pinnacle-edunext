@@ -28,6 +28,14 @@ const schema = z
     // Escape hatch to allow a local file DB in production (not recommended).
     ALLOW_LOCAL_DB: z.string().optional(),
     JWT_SECRET: z.string().optional(),
+    // Teacher dashboard (Prompt B). Invite code gates teacher registration;
+    // required in production so teacher accounts can't be self-minted. The demo
+    // teacher is seeded from the EMAIL/PASSWORD pair (required in production).
+    TEACHER_INVITE_CODE: z.string().optional(),
+    DEMO_TEACHER_EMAIL: z.string().optional(),
+    DEMO_TEACHER_PASSWORD: z.string().optional(),
+    // Allow the synthetic demo-analytics seed to run in production (off by default).
+    ALLOW_DEMO_ANALYTICS: z.string().optional(),
     // Comma-separated exact origins, e.g. "https://app.vercel.app,http://localhost:4173".
     CORS_ORIGINS: z.string().optional(),
     // Optional comma-separated regex sources for preview deploys (off by default).
@@ -56,6 +64,21 @@ const schema = z
           code: z.ZodIssueCode.custom,
           path: ['TURSO_DATABASE_URL'],
           message: 'In production set TURSO_DATABASE_URL (+ TURSO_AUTH_TOKEN) for a persistent database, or set ALLOW_LOCAL_DB=1 to use an (ephemeral) local file.',
+        });
+      }
+      // Teacher registration must be gated by a real invite code in production.
+      if (!env.TEACHER_INVITE_CODE || env.TEACHER_INVITE_CODE.length < 8) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['TEACHER_INVITE_CODE'],
+          message: 'In production set TEACHER_INVITE_CODE to a strong secret (>= 8 chars) to gate teacher registration.',
+        });
+      }
+      if (!env.DEMO_TEACHER_EMAIL || !env.DEMO_TEACHER_PASSWORD) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['DEMO_TEACHER_EMAIL'],
+          message: 'In production set DEMO_TEACHER_EMAIL and DEMO_TEACHER_PASSWORD to seed the demo teacher.',
         });
       }
     }
@@ -104,6 +127,8 @@ export function loadConfig(env = process.env) {
     tursoAuthToken: e.TURSO_AUTH_TOKEN || null,
     dbKind: e.TURSO_DATABASE_URL ? 'Turso' : 'local file',
     jwtSecret: e.JWT_SECRET || 'dev-only-insecure-secret-change-me',
+    teacherInviteCode: e.TEACHER_INVITE_CODE || null,
+    allowDemoAnalytics: e.ALLOW_DEMO_ANALYTICS === '1',
     corsOrigins,
     corsPatterns,
     logLevel: e.LOG_LEVEL,

@@ -17,8 +17,8 @@ export default function Login() {
     setError('');
     setBusy(true);
     try {
-      await login(email, password);
-      navigate('/home');
+      const res = await login(email, password);
+      navigate(res?.user?.role === 'teacher' ? '/teacher' : '/home');
     } catch (err) {
       setError(err.message || 'Could not sign in');
     } finally {

@@ -18,6 +18,11 @@ export const registerSchema = z.object({
   email: emailSchema,
   name: z.string().min(1).max(100),
   password: passwordSchema,
+  // Teacher registration (optional, backward-compatible). When role='teacher'
+  // the server also requires a valid inviteCode; a student registration omits
+  // both (or sends role='student').
+  role: z.enum(['student', 'teacher']).optional(),
+  inviteCode: z.string().max(200).optional(),
 });
 
 export const loginSchema = z.object({

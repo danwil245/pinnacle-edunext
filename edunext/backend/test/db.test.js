@@ -58,7 +58,15 @@ describe('transaction helper', () => {
 });
 
 describe('production boot guard', () => {
-  const base = { NODE_ENV: 'production', JWT_SECRET: 'x'.repeat(40) };
+  // Teacher-dashboard prod requirements are satisfied so these cases isolate the
+  // DB-config behaviour under test.
+  const base = {
+    NODE_ENV: 'production',
+    JWT_SECRET: 'x'.repeat(40),
+    TEACHER_INVITE_CODE: 'invite-code-secret',
+    DEMO_TEACHER_EMAIL: 'demo-teacher@example.com',
+    DEMO_TEACHER_PASSWORD: 'demo-teacher-pass',
+  };
 
   it('refuses to start in production without a Turso URL', () => {
     const exit = vi.spyOn(process, 'exit').mockImplementation(() => {
